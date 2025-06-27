@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Form for SmartFill</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Test Job Application Form</h1>
+    <form>
+        <div class="form-group">
+            <label for="first-name">First Name</label>
+            <input type="text" id="first-name" name="firstName" placeholder="Enter your first name">
+        </div>
+        
+        <div class="form-group">
+            <label for="last-name">Last Name</label>
+            <input type="text" id="last-name" name="lastName" placeholder="Enter your last name">
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" placeholder="Enter your email">
+        </div>
+        
+        <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" name="phone" placeholder="Enter your phone number">
+        </div>
+        
+        <div class="form-group">
+            <label for="linkedin">LinkedIn Profile URL</label>
+            <input type="url" id="linkedin" name="linkedin" placeholder="Enter your LinkedIn URL">
+        </div>
+        
+        <div class="form-group">
+            <label for="location">Location</label>
+            <input type="text" id="location" name="location" placeholder="Enter your city">
+        </div>
+        
+        <div class="form-group">
+            <label for="company">Current Company</label>
+            <input type="text" id="company" name="company" placeholder="Enter your current company">
+        </div>
+        
+        <div class="form-group">
+            <label for="position">Job Title</label>
+            <input type="text" id="position" name="position" placeholder="Enter your job title">
+        </div>
+        
+        <div class="form-group">
+            <label for="about">Tell us about yourself</label>
+            <textarea id="about" name="about" rows="4" placeholder="Write a brief description about yourself"></textarea>
+        </div>
+        
+        <button type="submit">Submit Application</button>
+    </form>
+</body>
+</html>

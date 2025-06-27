@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "SmartFill Extension",
+  "version": "1.0",
+  "description": "One-click AI-powered autofill for any form.",
+  "permissions": [
+    "storage",
+    "scripting",
+    "activeTab",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "https://api.anthropic.com/",
+    "https://*.linkedin.com/",
+    "https://*.github.com/",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "action": {
+    "default_popup": "popup.html"
+
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}
