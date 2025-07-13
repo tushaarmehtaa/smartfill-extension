@@ -13,6 +13,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const apiKeyInput = document.getElementById('api-key');
   const saveKeyBtn = document.getElementById('save-key-btn');
   const autofillBtn = document.getElementById('autofill-btn');
+  const undoBtn = document.getElementById('undo-btn');
+  const spinner = document.getElementById('spinner');
+  const previewOverlay = document.getElementById('preview-overlay');
+  const previewList = document.getElementById('preview-list');
+  const confirmFillBtn = document.getElementById('confirm-fill-btn');
+  const cancelPreviewBtn = document.getElementById('cancel-preview-btn');
   const statusDiv = document.getElementById('status');
   const profileStatusDiv = document.getElementById('profile-status');
   const expandProfileBtn = document.getElementById('expand-profile-btn');
@@ -26,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let userProfile = { ...defaultProfile };
   let isSettingsVisible = false;
+  let lastFrameIds = [];
 
   // Load data from storage
   function loadData() {
@@ -120,8 +127,42 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.runtime.openOptionsPage();
   });
 
-  // Main autofill functionality
-  autofillBtn.addEventListener('click', () => {
+  function showSpinner() { spinner.classList.remove('hidden'); }
+  function hideSpinner() { spinner.classList.add('hidden'); }
+
+  function showPreview(values, fields) {
+    previewList.innerHTML = '';
+    fields.forEach(f => {
+      const val = values[f.id] || '';
+      const item = document.createElement('div');
+      item.textContent = `${f.label || f.name || f.id}: ${val}`;
+      previewList.appendChild(item);
+    });
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'highlight_fields', fieldIds: fields.map(f => f.id) });
+      }
+    });
+    previewOverlay.classList.remove('hidden');
+  }
+
+  function hidePreview() {
+    previewOverlay.classList.add('hidden');
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'clear_highlights' });
+      }
+    });
+  }
+
+  function notify(message) {
+    const iconData = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO++uLsAAAAASUVORK5CYII=';
+    chrome.notifications.create({ type: 'basic', iconUrl: iconData, title: 'SmartFill', message });
+  }
+
+  function startAutofill() {
+    statusDiv.textContent = 'Scanning form fields...';
+    showSpinner();
     statusDiv.textContent = 'Scanning form fields...';
 
     chrome.storage.local.get(['apiKey'], (result) => {
@@ -180,69 +221,114 @@ document.addEventListener('DOMContentLoaded', () => {
               apiKey: apiKey,
               pageContext: pageContext
             }, (aiResponse) => {
+              hideSpinner();
               if (chrome.runtime.lastError || !aiResponse) {
                 statusDiv.textContent = `Error: ${chrome.runtime.lastError?.message || 'Unknown error'}`;
+                notify(statusDiv.textContent);
                 return;
               }
               if (aiResponse.error) {
                 statusDiv.textContent = `AI Error: ${aiResponse.error}`;
+                notify(statusDiv.textContent);
                 return;
               }
 
-              statusDiv.textContent = 'Filling form...';
-
-              // Group values by frameId to send separate fill commands
-              const valuesByFrame = {};
-              for (const fieldId in aiResponse.values) {
-                const field = allFields.find(f => f.id === fieldId);
-                if (field) {
-                  const frameId = field.frameId;
-                  if (!valuesByFrame[frameId]) {
-                    valuesByFrame[frameId] = {};
-                  }
-                  valuesByFrame[frameId][fieldId] = aiResponse.values[fieldId];
-                }
-              }
-
-              const fillPromises = Object.keys(valuesByFrame).map(frameIdStr => {
-                const frameId = parseInt(frameIdStr, 10);
-                return new Promise((resolve) => {
-                  chrome.tabs.sendMessage(tabId, {
-                    action: 'fill_form',
-                    values: valuesByFrame[frameId]
-                  }, { frameId }, (fillResp) => {
-                    if (chrome.runtime.lastError) {
-                      resolve({ filled: 0, errors: [`Frame ${frameId}: ${chrome.runtime.lastError.message}`] });
-                    } else if (fillResp) {
-                      resolve(fillResp); // Resolve with the whole {filled, errors} object
-                    } else {
-                      resolve({ filled: 0, errors: [`Frame ${frameId}: No response from content script.`] });
-                    }
-                  });
-                });
-              });
-
-              Promise.all(fillPromises).then((results) => {
-                let totalFilledCount = 0;
-                const allErrors = [];
-                results.forEach(res => {
-                  totalFilledCount += res.filled || 0;
-                  if (res.errors && res.errors.length > 0) {
-                    allErrors.push(...res.errors);
-                  }
-                });
-
-                if (allErrors.length > 0) {
-                  statusDiv.textContent = `Error: ${allErrors[0]}`;
-                } else {
-                  statusDiv.textContent = totalFilledCount > 0
-                    ? `Successfully filled ${totalFilledCount} fields!`
-                    : 'No fields were filled. Check if the form is compatible.';
-                }
-              });
+              statusDiv.textContent = 'Review fields then confirm.';
+              lastFrameIds = Array.from(new Set(allFields.map(f => f.frameId)));
+              previewOverlay.dataset.tabId = tabId;
+              previewOverlay.dataset.pageContext = pageContext;
+              previewOverlay.dataset.apiKey = apiKey;
+              previewOverlay.dataset.values = JSON.stringify(aiResponse.values);
+              previewOverlay.dataset.fields = JSON.stringify(allFields);
+              showPreview(aiResponse.values, allFields);
             });
           });
         });
+      });
+    });
+  }
+
+  autofillBtn.addEventListener('click', startAutofill);
+
+  confirmFillBtn.addEventListener('click', () => {
+    hidePreview();
+    showSpinner();
+    const tabId = parseInt(previewOverlay.dataset.tabId, 10);
+    const apiKey = previewOverlay.dataset.apiKey;
+    const values = JSON.parse(previewOverlay.dataset.values || '{}');
+    const fields = JSON.parse(previewOverlay.dataset.fields || '[]');
+
+    // Group values by frameId
+    const valuesByFrame = {};
+    fields.forEach(f => {
+      if (values[f.id]) {
+        if (!valuesByFrame[f.frameId]) { valuesByFrame[f.frameId] = {}; }
+        valuesByFrame[f.frameId][f.id] = values[f.id];
+      }
+    });
+
+    const fillPromises = Object.keys(valuesByFrame).map(frameIdStr => {
+      const frameId = parseInt(frameIdStr, 10);
+      return new Promise((resolve) => {
+        chrome.tabs.sendMessage(tabId, {
+          action: 'fill_form',
+          values: valuesByFrame[frameId]
+        }, { frameId }, (fillResp) => {
+          if (chrome.runtime.lastError) {
+            resolve({ filled: 0, errors: [`Frame ${frameId}: ${chrome.runtime.lastError.message}`] });
+          } else if (fillResp) {
+            resolve({ ...fillResp, frameId });
+          } else {
+            resolve({ filled: 0, errors: [`Frame ${frameId}: No response from content script.`] });
+          }
+        });
+      });
+    });
+
+    Promise.all(fillPromises).then(results => {
+      hideSpinner();
+      let totalFilledCount = 0;
+      const allErrors = [];
+      lastFrameIds = [];
+      results.forEach(res => {
+        totalFilledCount += res.filled || 0;
+        if (res.errors && res.errors.length > 0) {
+          allErrors.push(...res.errors);
+        }
+        if (res.filled > 0) {
+          lastFrameIds.push(res.frameId);
+        }
+      });
+
+      if (allErrors.length > 0) {
+        statusDiv.textContent = `Error: ${allErrors[0]}`;
+        notify(statusDiv.textContent);
+        undoBtn.classList.add('hidden');
+      } else {
+        statusDiv.textContent = totalFilledCount > 0
+          ? `Successfully filled ${totalFilledCount} fields!`
+          : 'No fields were filled. Check if the form is compatible.';
+        notify(statusDiv.textContent);
+        undoBtn.classList.toggle('hidden', totalFilledCount === 0);
+      }
+    });
+  });
+
+  cancelPreviewBtn.addEventListener('click', () => {
+    hidePreview();
+    statusDiv.textContent = 'Fill cancelled.';
+  });
+
+  undoBtn.addEventListener('click', () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs[0]) return;
+      const promises = lastFrameIds.map(frameId => new Promise((resolve) => {
+        chrome.tabs.sendMessage(tabs[0].id, { action: 'undo_last_fill' }, { frameId }, () => resolve());
+      }));
+      Promise.all(promises).then(() => {
+        statusDiv.textContent = 'Undo complete.';
+        notify('Last fill undone');
+        undoBtn.classList.add('hidden');
       });
     });
   });
@@ -258,4 +344,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize
   loadData();
+
+  chrome.storage.local.get('autoFillTrigger', (res) => {
+    if (res.autoFillTrigger) {
+      chrome.storage.local.remove('autoFillTrigger');
+      startAutofill();
+    }
+  });
 });

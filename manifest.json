@@ -7,7 +7,8 @@
     "storage",
     "scripting",
     "activeTab",
-    "webNavigation"
+    "webNavigation",
+    "notifications"
   ],
   "host_permissions": [
     "https://api.anthropic.com/",
@@ -30,5 +31,13 @@
       "run_at": "document_idle",
       "all_frames": true
     }
-  ]
+  ],
+  "commands": {
+    "trigger-autofill": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+F"
+      },
+      "description": "Trigger Smart Fill"
+    }
+  }
 }

@@ -177,3 +177,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep the message channel open for the async response
   }
 });
+
+chrome.commands.onCommand.addListener((command) => {
+  if (command === 'trigger-autofill') {
+    chrome.storage.local.set({ autoFillTrigger: true }, () => {
+      chrome.action.openPopup();
+    });
+  }
+});

@@ -1,5 +1,17 @@
 // content.js
 
+let lastFilledValues = null;
+let highlightedEls = [];
+
+function ensureHighlightStyles() {
+  if (!document.getElementById('smartfill-highlight-style')) {
+    const style = document.createElement('style');
+    style.id = 'smartfill-highlight-style';
+    style.textContent = `.smartfill-highlight { outline: 2px solid #ff9800 !important; background: #fff3cd !important; }`;
+    document.head.appendChild(style);
+  }
+}
+
 function getXPathForElement(element) {
   if (element.id !== '') {
     // If the element has an ID, use it for a simple and robust XPath
@@ -67,7 +79,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     let filledCount = 0;
     const errors = [];
     const { values } = request;
-
+    lastFilledValues = {};
     for (const fieldXPath in values) {
       if (Object.prototype.hasOwnProperty.call(values, fieldXPath)) {
         try {
@@ -75,6 +87,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           const valueToFill = values[fieldXPath];
 
           if (el && valueToFill) {
+            lastFilledValues[fieldXPath] = el.value;
             el.focus();
             el.value = valueToFill;
             el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -89,7 +102,45 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
       }
     }
-    sendResponse({ filled: filledCount, errors: errors });
+    sendResponse({ filled: filledCount, errors });
+    return true;
+  } else if (request.action === 'undo_last_fill') {
+    let undone = 0;
+    if (lastFilledValues) {
+      for (const fieldXPath in lastFilledValues) {
+        try {
+          const el = document.evaluate(fieldXPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+          if (el) {
+            el.value = lastFilledValues[fieldXPath];
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            undone++;
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+    lastFilledValues = null;
+    sendResponse({ undone });
+    return true;
+  } else if (request.action === 'highlight_fields') {
+    ensureHighlightStyles();
+    highlightedEls.forEach(el => el.classList.remove('smartfill-highlight'));
+    highlightedEls = [];
+    (request.fieldIds || []).forEach(xp => {
+      const el = document.evaluate(xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+      if (el) {
+        el.classList.add('smartfill-highlight');
+        highlightedEls.push(el);
+      }
+    });
+    sendResponse({ done: true });
+    return true;
+  } else if (request.action === 'clear_highlights') {
+    highlightedEls.forEach(el => el.classList.remove('smartfill-highlight'));
+    highlightedEls = [];
+    sendResponse({ done: true });
     return true;
   }
 });

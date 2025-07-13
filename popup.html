@@ -168,6 +168,43 @@
       font-style: italic;
       margin-top: 8px;
     }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      margin: 10px auto;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .preview-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .preview-modal {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      max-height: 80vh;
+      overflow-y: auto;
+      width: 90%;
+    }
+    .preview-list {
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
@@ -187,7 +224,11 @@
         <button id="autofill-btn" class="autofill-btn">
           ✨ Smart Fill Form
         </button>
-        
+
+        <button id="undo-btn" class="btn btn-secondary hidden" style="width:100%; margin-bottom: 10px;">↩️ Undo Last Fill</button>
+
+        <div id="spinner" class="spinner hidden"></div>
+
         <div id="status" class="status">Ready to fill forms intelligently</div>
       </div>
     </div>
@@ -247,6 +288,15 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div id="preview-overlay" class="preview-overlay hidden">
+    <div class="preview-modal">
+      <h3>Preview Fields to Fill</h3>
+      <div id="preview-list" class="preview-list"></div>
+      <button id="confirm-fill-btn" class="btn" style="width:100%; margin-top:10px;">Fill Form</button>
+      <button id="cancel-preview-btn" class="btn btn-secondary" style="width:100%; margin-top:10px;">Cancel</button>
     </div>
   </div>
 
