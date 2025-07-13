@@ -14,10 +14,17 @@
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: #333;
     }
+    body.dark {
+      background: linear-gradient(135deg, #2c2c54 0%, #4b367c 100%);
+      color: #e0e0e0;
+    }
     .container {
       background: white;
       margin: 0;
       min-height: 500px;
+    }
+    body.dark .container {
+      background: #1e1e1e;
     }
     .header {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -26,6 +33,9 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+    }
+    body.dark .header {
+      background: linear-gradient(135deg, #343a40 0%, #212529 100%);
     }
     .title {
       font-size: 20px;
@@ -64,6 +74,11 @@
       border: 1px solid #b3d9ff;
       font-weight: 500;
     }
+    body.dark .profile-status {
+      background: #2b3035;
+      color: #d1d5db;
+      border-color: #3c4043;
+    }
     .autofill-btn {
       width: 100%;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -77,6 +92,9 @@
       margin-bottom: 16px;
       transition: all 0.3s;
       box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    body.dark .autofill-btn {
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
     }
     .autofill-btn:hover {
       transform: translateY(-2px);
@@ -94,6 +112,11 @@
       background: #f8f9fa;
       border-radius: 8px;
       border: 1px solid #e9ecef;
+    }
+    body.dark .status {
+      background: #2b3035;
+      border-color: #3c4043;
+      color: #ccc;
     }
     .form-section {
       margin-bottom: 24px;
@@ -128,6 +151,12 @@
       transition: all 0.2s;
       background: #f8f9fa;
     }
+    body.dark .form-group input,
+    body.dark .form-group textarea {
+      background: #343a40;
+      border-color: #495057;
+      color: #eee;
+    }
     .form-group input:focus, .form-group textarea:focus {
       outline: none;
       border-color: #667eea;
@@ -146,6 +175,9 @@
       transition: all 0.2s;
       box-shadow: 0 2px 10px rgba(40, 167, 69, 0.3);
     }
+    body.dark .btn {
+      box-shadow: 0 2px 10px rgba(40, 167, 69, 0.5);
+    }
     .btn:hover {
       transform: translateY(-1px);
       box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
@@ -156,6 +188,9 @@
     }
     .btn-secondary:hover {
       box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+    }
+    body.dark .divider {
+      background: linear-gradient(90deg, transparent, #3c4043, transparent);
     }
     .divider {
       height: 1px;
@@ -178,7 +213,10 @@
           <span>🤖</span>
           <span>SmartFill AI</span>
         </div>
-        <button id="settings-toggle" class="settings-btn">⚙️</button>
+        <div>
+          <button id="theme-toggle" class="settings-btn" title="Toggle theme">🌓</button>
+          <button id="settings-toggle" class="settings-btn">⚙️</button>
+        </div>
       </div>
       
       <div class="content">

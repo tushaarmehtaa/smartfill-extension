@@ -5,12 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SmartFill Settings</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .dark .profile-input {
+      background-color: #1f2937;
+      border-color: #374151;
+      color: #f3f4f6;
+    }
+  </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
   <div class="max-w-4xl mx-auto py-10 px-6">
     <div class="flex items-center justify-between pb-6 border-b">
-      <h1 class="text-3xl font-bold text-gray-800">SmartFill Settings</h1>
-      <div id="status" class="text-green-600 font-medium transition-opacity duration-300 opacity-0"></div>
+      <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100">SmartFill Settings</h1>
+      <div class="flex items-center gap-4">
+        <button id="theme-toggle" class="text-xl" title="Toggle theme">🌓</button>
+        <div id="status" class="text-green-600 font-medium transition-opacity duration-300 opacity-0"></div>
+      </div>
     </div>
 
     <p class="text-gray-600 mt-4">This is your central profile. The more detail you provide, the better the AI can fill out forms for you. All changes are saved automatically.</p>
