@@ -5,7 +5,6 @@
 SmartFill AI is an intelligent Chrome extension that automates filling out web forms. It uses a combination of smart rule-based matching and the power of large language models (Anthropic's Claude) to accurately and contextually fill in everything from simple contact forms to complex job applications.
 
 ## Key Features
-
 - **Hybrid Filling Logic**: Uses deterministic rules for common fields (name, email, phone) and reserves AI for complex, open-ended questions, ensuring accuracy and relevance.
 - **Full iFrame Compatibility**: Seamlessly detects and fills forms embedded within iframes, a common pattern in modern web applications like job portals.
 - **User Profile Management**: Easily save and edit your profile information (name, email, professional summary, etc.) directly within the extension popup.
@@ -14,6 +13,7 @@ SmartFill AI is an intelligent Chrome extension that automates filling out web f
 - **Visual Preview & Undo**: Preview fields before filling and undo the last fill with a single click.
 - **Progress & Notifications**: See a spinner while filling and get success or error notifications.
 - **Keyboard Shortcut**: Press Ctrl+Shift+F to trigger SmartFill from any page.
+- **Dark Mode**: Toggle between light and dark themes in both the popup and settings pages.
 
 ## Quick Setup
 
@@ -54,6 +54,9 @@ To get started with SmartFill AI, follow these steps to load it as an unpacked e
     - Click the SmartFill AI icon.
     - Click the "Smart Fill Form" button.
     - The extension will scan the page, analyze the fields, and fill them in based on your profile.
+
+4.  **Switch Themes**:
+    - Use the moon icon in the popup or settings page to toggle dark mode.
 
 ## Technology Stack
 

@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const mainView = document.getElementById('main-view');
   const settingsView = document.getElementById('settings-view');
   const settingsToggle = document.getElementById('settings-toggle');
+  const themeToggle = document.getElementById('theme-toggle');
   const backBtn = document.getElementById('back-btn');
   const apiKeyInput = document.getElementById('api-key');
   const saveKeyBtn = document.getElementById('save-key-btn');
@@ -23,6 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const profileStatusDiv = document.getElementById('profile-status');
   const expandProfileBtn = document.getElementById('expand-profile-btn');
 
+  function applyTheme(theme) {
+    document.body.classList.toggle('dark', theme === 'dark');
+  }
+
   // Profile input fields
   const nameInput = document.getElementById('name');
   const emailInput = document.getElementById('email');
@@ -36,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load data from storage
   function loadData() {
-    chrome.storage.local.get(['userProfile', 'apiKey'], (result) => {
+    chrome.storage.local.get(['userProfile', 'apiKey', 'theme'], (result) => {
       if (result.userProfile) {
         userProfile = { ...defaultProfile, ...result.userProfile };
         updateProfileDisplay();
@@ -44,6 +49,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (result.apiKey) {
         apiKeyInput.value = result.apiKey;
+      }
+      if (result.theme) {
+        applyTheme(result.theme);
       }
     });
   }
@@ -86,6 +94,13 @@ document.addEventListener('DOMContentLoaded', () => {
     isSettingsVisible = true;
     mainView.classList.add('hidden');
     settingsView.classList.remove('hidden');
+  });
+
+  // Theme toggle
+  themeToggle.addEventListener('click', () => {
+    const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
+    applyTheme(newTheme);
+    chrome.storage.local.set({ theme: newTheme });
   });
 
   // Back button
@@ -339,6 +354,9 @@ document.addEventListener('DOMContentLoaded', () => {
       userProfile = { ...defaultProfile, ...changes.userProfile.newValue };
       updateProfileDisplay();
       populateProfileInputs();
+    }
+    if (changes.theme) {
+      applyTheme(changes.theme.newValue);
     }
   });
 

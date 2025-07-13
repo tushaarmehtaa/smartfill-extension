@@ -1,5 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
   const statusDiv = document.getElementById('status');
+  const themeToggle = document.getElementById('theme-toggle');
+
+  function applyTheme(theme) {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }
 
   // Define all profile input elements
   const inputs = {
@@ -27,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let saveTimeout;
 
   // Load the existing profile from storage and populate the form
-  chrome.storage.local.get('userProfile', (result) => {
+  chrome.storage.local.get(['userProfile', 'theme'], (result) => {
     if (result.userProfile) {
       userProfile = { ...defaultProfile, ...result.userProfile };
     }
@@ -35,6 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (inputs[key]) {
         inputs[key].value = userProfile[key] || '';
       }
+    }
+    if (result.theme) {
+      applyTheme(result.theme);
     }
   });
 
@@ -64,4 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
       inputs[key].addEventListener('input', handleProfileChange);
     }
   }
+
+  themeToggle.addEventListener('click', () => {
+    const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+    applyTheme(newTheme);
+    chrome.storage.local.set({ theme: newTheme });
+  });
 });
