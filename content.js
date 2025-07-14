@@ -1,146 +1,241 @@
-// content.js
+// This script is injected into each frame to handle DOM interactions.
 
-let lastFilledValues = null;
-let highlightedEls = [];
-
-function ensureHighlightStyles() {
-  if (!document.getElementById('smartfill-highlight-style')) {
-    const style = document.createElement('style');
-    style.id = 'smartfill-highlight-style';
-    style.textContent = `.smartfill-highlight { outline: 2px solid #ff9800 !important; background: #fff3cd !important; }`;
-    document.head.appendChild(style);
-  }
+/**
+ * Finds the best possible label for a given form element.
+ * It checks for a <label> with a 'for' attribute, a parent <label>, the placeholder, and finally the name attribute.
+ * @param {HTMLElement} el The form element.
+ * @returns {string} The best available label for the element.
+ */
+function getBestLabel(el) {
+    if (el.id) {
+        const label = document.querySelector(`label[for="${el.id}"]`);
+        if (label) return label.textContent.trim();
+    }
+    const parentLabel = el.closest('label');
+    if (parentLabel) return parentLabel.textContent.trim();
+    return el.placeholder || el.name || '';
 }
 
-function getXPathForElement(element) {
-  if (element.id !== '') {
-    // If the element has an ID, use it for a simple and robust XPath
-    return `//*[@id="${element.id}"]`;
-  }
-  if (element === document.body) {
-    return '/html/body';
-  }
-
-  let ix = 0;
-  const siblings = element.parentNode.childNodes;
-  for (let i = 0; i < siblings.length; i++) {
-    const sibling = siblings[i];
-    if (sibling === element) {
-      return `${getXPathForElement(element.parentNode)}/${element.tagName.toLowerCase()}[${ix + 1}]`;
-    }
-    if (sibling.nodeType === 1 && sibling.tagName === element.tagName) {
-      ix++;
-    }
-  }
-  return null; // Should not happen
-}
-
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'scan_form') {
+/**
+ * Scans the document for all visible, enabled form fields.
+ * @returns {Array<Object>} A list of field objects, each with details like id, label, and type.
+ */
+function scanForm() {
+    console.log('🔍 Content script: Starting form scan on', window.location.href);
+    const selector = 'input:not([type="hidden"]):not([type="submit"]), textarea, select';
+    const allElements = document.querySelectorAll(selector);
+    console.log('📋 Content script: Found', allElements.length, 'potential form elements');
+    
     const fields = [];
-    try {
-      document.querySelectorAll('input, textarea, select').forEach((el) => {
-        if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button' || !el.offsetParent) {
-          return;
-        }
-
-        let label = '';
-        if (el.id) {
-          const labelEl = document.querySelector(`label[for='${el.id}']`);
-          if (labelEl) label = labelEl.innerText;
-        }
-        if (!label) {
-          label = el.closest('label')?.innerText || el.placeholder || el.name || el.ariaLabel || '';
-        }
-
-        const fieldXPath = getXPathForElement(el);
-        if (fieldXPath) {
-          fields.push({
-            id: fieldXPath, // Use XPath as the unique identifier
-            name: el.name,
+    allElements.forEach((el, index) => {
+        console.log(`🔎 Element ${index}:`, {
+            tagName: el.tagName,
             type: el.type,
-            label: label.trim(),
-            value: el.value,
-            options: Array.from(el.options || []).map(opt => opt.value)
-          });
+            id: el.id,
+            name: el.name,
+            disabled: el.disabled,
+            visible: el.offsetParent !== null
+        });
+        
+        if (el.disabled || el.offsetParent === null) {
+            console.log(`⏭️ Skipping element ${index} (disabled or hidden)`);
+            return;
         }
-      });
 
-      const pageContext = document.body.innerText;
-      sendResponse({ fields, pageContext });
+        const fieldId = el.id || el.name || `smartfill-field-${index}`;
+        const field = {
+            id: fieldId,
+            label: getBestLabel(el),
+            name: el.name || '',
+            type: el.type || (el.tagName.toLowerCase() === 'select' ? 'select' : 'textarea'),
+            tagName: el.tagName.toLowerCase(),
+            value: el.value,
+            placeholder: el.placeholder || '',
+            required: el.required || false
+        };
+        
+        // For select elements, capture available options
+        if (el.tagName.toLowerCase() === 'select') {
+            field.options = Array.from(el.options).map(option => ({
+                value: option.value,
+                text: option.text,
+                selected: option.selected
+            }));
+        }
+        console.log(`✅ Adding field ${index}:`, field);
+        fields.push(field);
+    });
+    
+    console.log('🎯 Content script: Final field count:', fields.length);
+    return fields;
+}
 
-    } catch (error) {
-      console.error('SmartFill: Error scanning form fields.', error);
-      sendResponse({ error: 'Could not scan the form on this page.' });
+/**
+ * Intelligently finds the best matching option in a select element
+ * @param {HTMLSelectElement} selectElement - The select element
+ * @param {string} targetValue - The value we want to match
+ * @returns {Object|null} The best matching option or null
+ */
+function findBestSelectOption(selectElement, targetValue) {
+    if (!targetValue || !selectElement.options) return null;
+    
+    const targetLower = targetValue.toLowerCase().trim();
+    const options = Array.from(selectElement.options);
+    
+    // 1. Exact value match
+    let match = options.find(opt => opt.value.toLowerCase() === targetLower);
+    if (match) return match;
+    
+    // 2. Exact text match
+    match = options.find(opt => opt.text.toLowerCase().trim() === targetLower);
+    if (match) return match;
+    
+    // 3. Partial text match (contains)
+    match = options.find(opt => opt.text.toLowerCase().includes(targetLower));
+    if (match) return match;
+    
+    // 4. Partial value match (contains)
+    match = options.find(opt => opt.value.toLowerCase().includes(targetLower));
+    if (match) return match;
+    
+    // 5. Smart matching for common patterns
+    // Years of experience: "3-5 years" should match "3-5", "3 to 5", etc.
+    if (targetLower.includes('year')) {
+        const yearMatch = targetLower.match(/(\d+)[-\s]*(?:to|-)\s*(\d+)|\d+/);
+        if (yearMatch) {
+            const yearPattern = yearMatch[0].replace(/\s+/g, '').replace('to', '-');
+            match = options.find(opt => 
+                opt.text.toLowerCase().includes(yearPattern) || 
+                opt.value.toLowerCase().includes(yearPattern)
+            );
+            if (match) return match;
+        }
     }
-    return true;
+    
+    // 6. Country/State matching
+    if (targetLower.includes('india') || targetLower === 'in') {
+        match = options.find(opt => 
+            opt.text.toLowerCase().includes('india') || 
+            opt.value.toLowerCase() === 'in' ||
+            opt.value.toLowerCase() === 'india'
+        );
+        if (match) return match;
+    }
+    
+    // 7. Gender matching
+    if (['male', 'female', 'non-binary', 'other'].includes(targetLower)) {
+        match = options.find(opt => 
+            opt.text.toLowerCase().includes(targetLower) ||
+            opt.value.toLowerCase().includes(targetLower)
+        );
+        if (match) return match;
+    }
+    
+    console.log(`🔍 No match found for "${targetValue}" in options:`, options.map(o => o.text));
+    return null;
+}
 
-  } else if (request.action === 'fill_form') {
+/**
+ * Fills form fields with the provided values.
+ * @param {Array<{id: string, value: string}>} values - The data to fill.
+ * @returns {{filledCount: number, errors: Array<string>}} The result of the fill operation.
+ */
+function fillForm(values) {
+    console.log('🖊️ Content script: Starting fillForm with values:', values);
     let filledCount = 0;
     const errors = [];
-    const { values } = request;
-    lastFilledValues = {};
-    for (const fieldXPath in values) {
-      if (Object.prototype.hasOwnProperty.call(values, fieldXPath)) {
-        try {
-          const el = document.evaluate(fieldXPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-          const valueToFill = values[fieldXPath];
 
-          if (el && valueToFill) {
-            lastFilledValues[fieldXPath] = el.value;
-            el.focus();
-            el.value = valueToFill;
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            el.dispatchEvent(new Event('change', { bubbles: true }));
-            el.blur();
-            filledCount++;
-          } else if (!el) {
-            errors.push(`Could not find element with XPath: ${fieldXPath.substring(0, 70)}...`);
-          }
-        } catch (e) {
-          errors.push(`Error filling XPath: ${e.message}`);
-        }
-      }
+    if (!values || !Array.isArray(values)) {
+        console.log('❌ Content script: Invalid values provided to fillForm');
+        return { filledCount: 0, errors: ['Invalid values provided'] };
     }
-    sendResponse({ filled: filledCount, errors });
-    return true;
-  } else if (request.action === 'undo_last_fill') {
-    let undone = 0;
-    if (lastFilledValues) {
-      for (const fieldXPath in lastFilledValues) {
-        try {
-          const el = document.evaluate(fieldXPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-          if (el) {
-            el.value = lastFilledValues[fieldXPath];
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            el.dispatchEvent(new Event('change', { bubbles: true }));
-            undone++;
-          }
-        } catch (e) {
-          // ignore
+
+    values.forEach((item, index) => {
+        console.log(`🔍 Processing fill item ${index}:`, item);
+        
+        // Try multiple ways to find the element
+        let el = document.getElementById(item.id);
+        if (!el) {
+            el = document.getElementsByName(item.id)[0];
         }
-      }
-    }
-    lastFilledValues = null;
-    sendResponse({ undone });
-    return true;
-  } else if (request.action === 'highlight_fields') {
-    ensureHighlightStyles();
-    highlightedEls.forEach(el => el.classList.remove('smartfill-highlight'));
-    highlightedEls = [];
-    (request.fieldIds || []).forEach(xp => {
-      const el = document.evaluate(xp, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-      if (el) {
-        el.classList.add('smartfill-highlight');
-        highlightedEls.push(el);
-      }
+        if (!el) {
+            // Try querySelector as fallback
+            el = document.querySelector(`[name="${item.id}"]`) || document.querySelector(`#${item.id}`);
+        }
+        
+        console.log(`🎯 Element found for ${item.id}:`, !!el);
+        
+        if (el) {
+            try {
+                console.log(`✏️ Filling ${item.id} with value:`, item.value);
+                
+                // Handle different field types intelligently
+                if (el.tagName.toLowerCase() === 'select') {
+                    // For select fields, try to find matching option
+                    const matchingOption = findBestSelectOption(el, item.value);
+                    if (matchingOption) {
+                        el.value = matchingOption.value;
+                        console.log(`🎯 Selected option: ${matchingOption.text} (${matchingOption.value})`);
+                    } else {
+                        console.log(`⚠️ No matching option found for: ${item.value}`);
+                        // Skip this field if no match found
+                        return;
+                    }
+                } else if (el.type === 'checkbox') {
+                    // Handle checkboxes
+                    const shouldCheck = ['true', 'yes', '1', 'on', 'checked'].includes(item.value.toLowerCase());
+                    el.checked = shouldCheck;
+                    console.log(`☑️ Checkbox ${shouldCheck ? 'checked' : 'unchecked'}`);
+                } else if (el.type === 'radio') {
+                    // Handle radio buttons
+                    if (el.value === item.value || item.value.toLowerCase() === 'true') {
+                        el.checked = true;
+                        console.log(`🔘 Radio button selected`);
+                    }
+                } else {
+                    // Handle regular input fields
+                    el.value = item.value;
+                }
+                
+                // Trigger events to notify the page of changes
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+                filledCount++;
+                console.log(`✅ Successfully filled ${item.id}`);
+            } catch (e) {
+                console.log(`❌ Error filling ${item.id}:`, e.message);
+                errors.push(`Could not fill field ${item.id}: ${e.message}`);
+            }
+        } else {
+            console.log(`❌ Field not found: ${item.id}`);
+            errors.push(`Field with ID "${item.id}" not found.`);
+        }
     });
-    sendResponse({ done: true });
-    return true;
-  } else if (request.action === 'clear_highlights') {
-    highlightedEls.forEach(el => el.classList.remove('smartfill-highlight'));
-    highlightedEls = [];
-    sendResponse({ done: true });
-    return true;
-  }
+    
+    console.log(`🎯 Fill complete: ${filledCount} fields filled, ${errors.length} errors`);
+    console.log('📋 Errors:', errors);
+    return { filledCount, errors };
+}
+
+// Main message listener to communicate with the rest of the extension.
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('📨 Content script: Received message:', request);
+    
+    if (request.action === 'scan_form') {
+        console.log('🔍 Content script: Processing scan_form request');
+        const fields = scanForm();
+        const response = { fields };
+        console.log('📤 Content script: Sending response:', response);
+        sendResponse(response);
+    } else if (request.action === 'fill_form') {
+        console.log('📝 Content script: Processing fill_form request');
+        if (request.values && Array.isArray(request.values)) {
+            sendResponse(fillForm(request.values));
+        } else {
+            sendResponse({ filledCount: 0, errors: ['No values provided or values is not an array.'] });
+        }
+    } else {
+        console.log('❓ Content script: Unknown action:', request.action);
+    }
+    return true; // Keep the message channel open for the asynchronous response.
 });

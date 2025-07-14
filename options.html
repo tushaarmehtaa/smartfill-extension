@@ -4,120 +4,177 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SmartFill Settings</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .dark .profile-input {
-      background-color: #1f2937;
-      border-color: #374151;
-      color: #f3f4f6;
-    }
-  </style>
+    <style>
+        /* Core Styles from popup.html */
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: #fefefe;
+            color: #2c2c2c;
+            line-height: 1.6;
+            margin: 0;
+            padding: 40px;
+        }
+        body::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-image: radial-gradient(circle at 25% 25%, #f8f8f8 0%, transparent 50%), radial-gradient(circle at 75% 75%, #f5f5f5 0%, transparent 50%);
+            opacity: 0.3; pointer-events: none; z-index: -1;
+        }
+        .container { max-width: 700px; margin: 0 auto; }
+        .title { font-size: 36px; font-weight: normal; letter-spacing: 2px; text-transform: uppercase; color: #1a1a1a; text-align: center; margin-bottom: 16px; }
+        .subtitle { font-size: 16px; color: #888; font-style: italic; text-align: center; margin-bottom: 48px; }
+        
+        /* Form Styles */
+        .form-section { margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid #e8e8e8; }
+        .form-section:last-child { border-bottom: none; }
+        .section-title { font-size: 22px; font-weight: normal; margin-bottom: 24px; color: #1a1a1a; letter-spacing: 1px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+        .form-group { display: flex; flex-direction: column; }
+        
+        label { font-size: 14px; color: #666; margin-bottom: 8px; font-style: italic; }
+        input[type="text"], input[type="email"], input[type="tel"], textarea {
+            background: #fff; border: 1px solid #ddd; padding: 12px 16px; font-size: 15px; font-family: inherit; color: #333;
+            border-radius: 0; transition: all 0.3s ease;
+        }
+        input:focus, textarea:focus { outline: none; border-color: #1a1a1a; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+        textarea { min-height: 120px; resize: vertical; }
+        .field-description { font-size: 12px; color: #999; margin-top: 8px; }
+
+        /* Button & Notification */
+        .save-button { background: #1a1a1a; color: white; border: none; padding: 14px 28px; font-size: 14px; font-family: inherit; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.3s ease; border-radius: 0; }
+        .save-button:hover { background: #333; letter-spacing: 2px; }
+        .notification { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #10b981; color: white; padding: 12px 24px; font-size: 14px; display: none; opacity: 0; transition: all 0.4s ease; }
+        .notification.show { display: block; opacity: 1; }
+    </style>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
-  <div class="max-w-4xl mx-auto py-10 px-6">
-    <div class="flex items-center justify-between pb-6 border-b">
-      <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100">SmartFill Settings</h1>
-      <div class="flex items-center gap-4">
-        <button id="theme-toggle" class="text-xl" title="Toggle theme">🌓</button>
-        <div id="status" class="text-green-600 font-medium transition-opacity duration-300 opacity-0"></div>
-      </div>
+<body>
+    <div class="container">
+        <h1 class="title">SmartFill Settings</h1>
+        <p class="subtitle">Manage your profile, API key, and preferences for a seamless experience.</p>
+
+        <form id="settings-form">
+            <!-- API Key Section -->
+            <div class="form-section">
+                <h2 class="section-title">API Configuration</h2>
+                <div class="form-group">
+                    <label for="apiKey">Claude API Key</label>
+                    <input type="text" id="apiKey" name="apiKey" placeholder="sk-ant-...">
+                    <p class="field-description">Your API key is stored locally and never shared. Get it from your Anthropic dashboard.</p>
+                </div>
+            </div>
+
+            <!-- Profile Section -->
+            <div class="form-section">
+                <h2 class="section-title">User Profile</h2>
+                <div class="form-grid">
+                    <div class="form-group"><label for="name">Full Name</label><input type="text" id="name" name="name"></div>
+                    <div class="form-group"><label for="email">Email Address</label><input type="email" id="email" name="email"></div>
+                    <div class="form-group"><label for="phone">Phone</label><input type="tel" id="phone" name="phone"></div>
+                    <div class="form-group"><label for="company">Company</label><input type="text" id="company" name="company"></div>
+                    <div class="form-group"><label for="jobTitle">Job Title</label><input type="text" id="jobTitle" name="jobTitle"></div>
+                </div>
+            </div>
+
+            <!-- Address Section -->
+            <div class="form-section">
+                <h2 class="section-title">Address Details</h2>
+                <div class="form-grid">
+                    <div class="form-group"><label for="address">Street Address</label><input type="text" id="address" name="address"></div>
+                    <div class="form-group"><label for="city">City</label><input type="text" id="city" name="city"></div>
+                    <div class="form-group"><label for="state">State / Province</label><input type="text" id="state" name="state"></div>
+                    <div class="form-group"><label for="zip">ZIP / Postal Code</label><input type="text" id="zip" name="zip"></div>
+                    <div class="form-group"><label for="country">Country</label><input type="text" id="country" name="country"></div>
+                </div>
+            </div>
+
+            <!-- Professional Details Section -->
+            <div class="form-section">
+                <h2 class="section-title">Professional Details</h2>
+                <div class="form-grid">
+                    <div class="form-group"><label for="experience">Years of Experience</label><input type="text" id="experience" name="experience" placeholder="e.g., 3-5 years"></div>
+                    <div class="form-group"><label for="currentSalary">Current Salary</label><input type="text" id="currentSalary" name="currentSalary" placeholder="e.g., $75,000"></div>
+                    <div class="form-group"><label for="expectedSalary">Expected Salary</label><input type="text" id="expectedSalary" name="expectedSalary" placeholder="e.g., $85,000"></div>
+                    <div class="form-group"><label for="noticePeriod">Notice Period</label><input type="text" id="noticePeriod" name="noticePeriod" placeholder="e.g., 2 weeks"></div>
+                    <div class="form-group"><label for="availability">Availability</label><input type="text" id="availability" name="availability" placeholder="e.g., Immediately"></div>
+                    <div class="form-group"><label for="workAuthorization">Work Authorization</label><input type="text" id="workAuthorization" name="workAuthorization" placeholder="e.g., US Citizen"></div>
+                </div>
+            </div>
+
+            <!-- Skills & Education Section -->
+            <div class="form-section">
+                <h2 class="section-title">Skills & Education</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="skills">Technical Skills</label>
+                        <textarea id="skills" name="skills" style="min-height: 80px;"></textarea>
+                        <p class="field-description">Comma-separated list: JavaScript, Python, React, etc.</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="education">Education</label>
+                        <input type="text" id="education" name="education" placeholder="e.g., Bachelor's in Computer Science">
+                    </div>
+                    <div class="form-group">
+                        <label for="university">University/School</label>
+                        <input type="text" id="university" name="university" placeholder="e.g., Stanford University">
+                    </div>
+                    <div class="form-group">
+                        <label for="graduationYear">Graduation Year</label>
+                        <input type="text" id="graduationYear" name="graduationYear" placeholder="e.g., 2020">
+                    </div>
+                    <div class="form-group">
+                        <label for="certifications">Certifications</label>
+                        <textarea id="certifications" name="certifications" style="min-height: 60px;"></textarea>
+                        <p class="field-description">Professional certifications, licenses, etc.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Social & Portfolio Section -->
+            <div class="form-section">
+                <h2 class="section-title">Online Presence</h2>
+                <div class="form-grid">
+                    <div class="form-group"><label for="linkedin">LinkedIn Profile</label><input type="text" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/yourname"></div>
+                    <div class="form-group"><label for="github">GitHub Profile</label><input type="text" id="github" name="github" placeholder="https://github.com/yourname"></div>
+                    <div class="form-group"><label for="portfolio">Portfolio Website</label><input type="text" id="portfolio" name="portfolio" placeholder="https://yourname.com"></div>
+                    <div class="form-group"><label for="twitter">Twitter/X Handle</label><input type="text" id="twitter" name="twitter" placeholder="@yourhandle"></div>
+                </div>
+            </div>
+
+            <!-- Personal Preferences Section -->
+            <div class="form-section">
+                <h2 class="section-title">Personal Information</h2>
+                <div class="form-grid">
+                    <div class="form-group"><label for="dateOfBirth">Date of Birth</label><input type="text" id="dateOfBirth" name="dateOfBirth" placeholder="MM/DD/YYYY"></div>
+                    <div class="form-group"><label for="gender">Gender</label><input type="text" id="gender" name="gender" placeholder="e.g., Male, Female, Non-binary"></div>
+                    <div class="form-group"><label for="pronouns">Preferred Pronouns</label><input type="text" id="pronouns" name="pronouns" placeholder="e.g., He/Him, She/Her, They/Them"></div>
+                    <div class="form-group"><label for="ethnicity">Ethnicity (Optional)</label><input type="text" id="ethnicity" name="ethnicity" placeholder="For diversity surveys"></div>
+                    <div class="form-group"><label for="veteranStatus">Veteran Status</label><input type="text" id="veteranStatus" name="veteranStatus" placeholder="e.g., Not a veteran"></div>
+                    <div class="form-group"><label for="disability">Disability Status</label><input type="text" id="disability" name="disability" placeholder="e.g., No disability"></div>
+                </div>
+            </div>
+
+            <!-- Bio Section -->
+            <div class="form-section">
+                <h2 class="section-title">Professional Bio</h2>
+                <div class="form-group">
+                    <label for="customBio">Your Bio</label>
+                    <textarea id="customBio" name="customBio"></textarea>
+                    <p class="field-description">A brief summary for open-ended questions like "Tell us about yourself."</p>
+                </div>
+                <div class="form-group">
+                    <label for="coverLetter">Cover Letter Template</label>
+                    <textarea id="coverLetter" name="coverLetter" style="min-height: 150px;"></textarea>
+                    <p class="field-description">Template for cover letter fields. Use {company} and {position} as placeholders.</p>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 40px;">
+                <button type="submit" class="save-button">Save All Changes</button>
+            </div>
+        </form>
     </div>
 
-    <p class="text-gray-600 mt-4">This is your central profile. The more detail you provide, the better the AI can fill out forms for you. All changes are saved automatically.</p>
+    <div id="notification" class="notification">Settings saved successfully!</div>
 
-    <!-- Basic Information -->
-    <div class="mt-8">
-      <h2 class="text-xl font-semibold text-gray-700 border-b pb-2">Basic Information</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-        <div>
-          <label for="profile-name" class="block text-sm font-medium text-gray-700">Full Name</label>
-          <input type="text" id="profile-name" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm">
-        </div>
-        <div>
-          <label for="profile-email" class="block text-sm font-medium text-gray-700">Email Address</label>
-          <input type="email" id="profile-email" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm">
-        </div>
-      </div>
-    </div>
-
-    <!-- Professional Details -->
-    <div class="mt-8">
-      <h2 class="text-xl font-semibold text-gray-700 border-b pb-2">Professional Details</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-        <div>
-          <label for="profile-profession" class="block text-sm font-medium text-gray-700">Profession / Job Title</label>
-          <input type="text" id="profile-profession" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm">
-        </div>
-        <div>
-          <label for="profile-company" class="block text-sm font-medium text-gray-700">Current Company</label>
-          <input type="text" id="profile-company" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm">
-        </div>
-        <div>
-          <label for="profile-linkedin" class="block text-sm font-medium text-gray-700">LinkedIn Profile URL</label>
-          <input type="url" id="profile-linkedin" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm">
-        </div>
-        <div>
-          <label for="profile-github" class="block text-sm font-medium text-gray-700">GitHub Profile URL</label>
-          <input type="url" id="profile-github" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm">
-        </div>
-        <div>
-          <label for="profile-portfolio" class="block text-sm font-medium text-gray-700">Portfolio/Website URL</label>
-          <input type="url" id="profile-portfolio" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm">
-        </div>
-      </div>
-    </div>
-
-    <!-- Address Details -->
-    <div class="mt-8">
-        <h2 class="text-xl font-semibold text-gray-700 border-b pb-2">Contact & Address</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-            <div>
-                <label for="profile-phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                <input type="tel" id="profile-phone" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm">
-            </div>
-            <div>
-                <label for="profile-street" class="block text-sm font-medium text-gray-700">Street Address</label>
-                <input type="text" id="profile-street" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm">
-            </div>
-            <div>
-                <label for="profile-city" class="block text-sm font-medium text-gray-700">City</label>
-                <input type="text" id="profile-city" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm">
-            </div>
-            <div>
-                <label for="profile-state" class="block text-sm font-medium text-gray-700">State / Province</label>
-                <input type="text" id="profile-state" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm">
-            </div>
-            <div>
-                <label for="profile-zip" class="block text-sm font-medium text-gray-700">Zip / Postal Code</label>
-                <input type="text" id="profile-zip" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm">
-            </div>
-            <div>
-                <label for="profile-country" class="block text-sm font-medium text-gray-700">Country</label>
-                <input type="text" id="profile-country" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm">
-            </div>
-        </div>
-    </div>
-
-    <!-- Detailed Information -->
-    <div class="mt-8">
-        <h2 class="text-xl font-semibold text-gray-700 border-b pb-2">Detailed Information for AI</h2>
-        <div class="space-y-4 mt-4">
-            <div>
-                <label for="profile-about" class="block text-sm font-medium text-gray-700">Bio / About Me</label>
-                <textarea id="profile-about" rows="5" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm" placeholder="Describe your background, key skills, and professional goals. This is used for open-ended questions."></textarea>
-            </div>
-            <div>
-                <label for="profile-resume" class="block text-sm font-medium text-gray-700">Resume / CV Summary</label>
-                <textarea id="profile-resume" rows="8" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm" placeholder="Paste the text of your resume here. The AI will use this to answer questions about your work experience and education."></textarea>
-            </div>
-            <div>
-                <label for="profile-cover-letter" class="block text-sm font-medium text-gray-700">Generic Cover Letter</label>
-                <textarea id="profile-cover-letter" rows="8" class="profile-input mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm sm:text-sm" placeholder="Provide a template or key points for a cover letter. The AI will adapt this for specific job applications."></textarea>
-            </div>
-        </div>
-    </div>
-
-  </div>
-  <script src="options.js"></script>
+    <script src="options.js"></script>
 </body>
 </html>

@@ -1,343 +1,404 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>SmartFill</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      width: 380px;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 14px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #333;
-    }
-    body.dark {
-      background: linear-gradient(135deg, #2c2c54 0%, #4b367c 100%);
-      color: #e0e0e0;
-    }
-    .container {
-      background: white;
-      margin: 0;
-      min-height: 500px;
-    }
-    body.dark .container {
-      background: #1e1e1e;
-    }
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    body.dark .header {
-      background: linear-gradient(135deg, #343a40 0%, #212529 100%);
-    }
-    .title {
-      font-size: 20px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .settings-btn, .back-btn {
-      background: rgba(255, 255, 255, 0.2);
-      border: none;
-      color: white;
-      font-size: 18px;
-      cursor: pointer;
-      padding: 8px 12px;
-      border-radius: 8px;
-      transition: all 0.2s;
-    }
-    .settings-btn:hover, .back-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
-      transform: scale(1.05);
-    }
-    .content {
-      padding: 24px;
-    }
-    .hidden {
-      display: none;
-    }
-    .profile-status {
-      background: linear-gradient(135deg, #e8f4fd 0%, #f0f8ff 100%);
-      padding: 12px 16px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      font-size: 14px;
-      color: #0066cc;
-      border: 1px solid #b3d9ff;
-      font-weight: 500;
-    }
-    body.dark .profile-status {
-      background: #2b3035;
-      color: #d1d5db;
-      border-color: #3c4043;
-    }
-    .autofill-btn {
-      width: 100%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      padding: 16px;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-bottom: 16px;
-      transition: all 0.3s;
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-    }
-    body.dark .autofill-btn {
-      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-    }
-    .autofill-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-    }
-    .autofill-btn:active {
-      transform: translateY(0);
-    }
-    .status {
-      text-align: center;
-      padding: 12px;
-      font-size: 14px;
-      color: #666;
-      min-height: 24px;
-      background: #f8f9fa;
-      border-radius: 8px;
-      border: 1px solid #e9ecef;
-    }
-    body.dark .status {
-      background: #2b3035;
-      border-color: #3c4043;
-      color: #ccc;
-    }
-    .form-section {
-      margin-bottom: 24px;
-    }
-    .section-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #2c3e50;
-      margin-bottom: 16px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid #e9ecef;
-    }
-    .form-group {
-      margin-bottom: 16px;
-    }
-    .form-group label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 600;
-      color: #495057;
-      font-size: 13px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .form-group input, .form-group textarea {
-      width: 100%;
-      padding: 12px 16px;
-      border: 2px solid #e9ecef;
-      border-radius: 10px;
-      font-size: 14px;
-      box-sizing: border-box;
-      transition: all 0.2s;
-      background: #f8f9fa;
-    }
-    body.dark .form-group input,
-    body.dark .form-group textarea {
-      background: #343a40;
-      border-color: #495057;
-      color: #eee;
-    }
-    .form-group input:focus, .form-group textarea:focus {
-      outline: none;
-      border-color: #667eea;
-      background: white;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-    .btn {
-      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      transition: all 0.2s;
-      box-shadow: 0 2px 10px rgba(40, 167, 69, 0.3);
-    }
-    body.dark .btn {
-      box-shadow: 0 2px 10px rgba(40, 167, 69, 0.5);
-    }
-    .btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
-    }
-    .btn-secondary {
-      background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-      box-shadow: 0 2px 10px rgba(108, 117, 125, 0.3);
-    }
-    .btn-secondary:hover {
-      box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
-    }
-    body.dark .divider {
-      background: linear-gradient(90deg, transparent, #3c4043, transparent);
-    }
-    .divider {
-      height: 1px;
-      background: linear-gradient(90deg, transparent, #e9ecef, transparent);
-      margin: 24px 0;
-    }
-    .auto-save-indicator {
-      font-size: 12px;
-      color: #28a745;
-      font-style: italic;
-      margin-top: 8px;
-    }
-    .spinner {
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #667eea;
-      border-radius: 50%;
-      width: 24px;
-      height: 24px;
-      animation: spin 1s linear infinite;
-      margin: 10px auto;
-    }
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    .preview-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    .preview-modal {
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      max-height: 80vh;
-      overflow-y: auto;
-      width: 90%;
-    }
-    .preview-list {
-      margin-top: 10px;
-      margin-bottom: 20px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartFill AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 380px;
+            height: 580px;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: #fefefe;
+            color: #2c2c2c;
+            line-height: 1.6;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Paper texture */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 25% 25%, #f8f8f8 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, #f5f5f5 0%, transparent 50%);
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .container {
+            height: 100%;
+            padding: 32px 28px;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            margin-bottom: 36px;
+            border-bottom: 1px solid #e8e8e8;
+            padding-bottom: 24px;
+        }
+
+        .masthead {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: normal;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #1a1a1a;
+            font-family: 'Times New Roman', serif;
+        }
+
+        .settings-link {
+            font-size: 14px;
+            color: #666;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s ease;
+            font-style: italic;
+        }
+
+        .settings-link:hover {
+            border-bottom-color: #666;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #888;
+            font-style: italic;
+            letter-spacing: 0.5px;
+        }
+
+        /* Profile Section */
+        .profile-section {
+            margin-bottom: 40px;
+        }
+
+        .profile-header {
+            font-size: 16px;
+            font-weight: normal;
+            margin-bottom: 16px;
+            color: #1a1a1a;
+            letter-spacing: 1px;
+        }
+
+        .profile-details {
+            font-size: 15px;
+            line-height: 1.7;
+            color: #444;
+            margin-bottom: 16px;
+        }
+
+        .profile-name {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .profile-email {
+            color: #666;
+            font-style: italic;
+        }
+
+        .profile-stats {
+            font-size: 13px;
+            color: #888;
+            line-height: 1.5;
+            border-left: 3px solid #e0e0e0;
+            padding-left: 16px;
+            margin-top: 20px;
+        }
+
+        .stat-line {
+            margin-bottom: 4px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: normal;
+            margin-bottom: 16px;
+            color: #1a1a1a;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+
+        .description {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #555;
+            text-align: center;
+            margin-bottom: 32px;
+            font-style: italic;
+        }
+
+        /* Primary Action */
+        .primary-action {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .fill-button {
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            font-size: 15px;
+            font-family: inherit;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 0;
+            min-width: 200px;
+        }
+
+        .fill-button:hover {
+            background: #333;
+            letter-spacing: 2px;
+        }
+
+        .fill-button:disabled {
+            background: #999;
+            cursor: not-allowed;
+            letter-spacing: 1px;
+        }
+
+        /* Secondary Actions */
+        .secondary-actions {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .secondary-link {
+            font-size: 13px;
+            color: #666;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: all 0.3s ease;
+            text-transform: lowercase;
+            letter-spacing: 0.5px;
+        }
+
+        .secondary-link:hover {
+            color: #1a1a1a;
+            border-bottom-color: #1a1a1a;
+        }
+
+        /* Status */
+        .status-section {
+            text-align: center;
+            font-size: 12px;
+            color: #aaa;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: #10b981;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: #bbb;
+        }
+
+        .shortcut {
+            font-family: 'Courier New', monospace;
+            background: #f8f8f8;
+            padding: 2px 6px;
+            border-radius: 2px;
+            border: 1px solid #e0e0e0;
+        }
+
+        /* Loading State */
+        .loading .fill-button {
+            background: #666;
+            animation: pulse 2s infinite;
+        }
+
+        .loading .section-title::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 2px;
+            background: #666;
+            margin-left: 12px;
+            animation: loading 1.5s infinite ease-in-out;
+        }
+
+        @keyframes loading {
+            0%, 80%, 100% { opacity: 0.3; }
+            40% { opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        /* Notification */
+        .notification {
+            position: absolute;
+            top: 20px;
+            left: 28px;
+            right: 28px;
+            background: #1a1a1a;
+            color: white;
+            padding: 12px 16px;
+            font-size: 13px;
+            text-align: center;
+            transform: translateY(-100px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            letter-spacing: 0.5px;
+            z-index: 100;
+        }
+
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .notification.success {
+            background: #10b981;
+        }
+
+        .notification.error {
+            background: #dc2626;
+        }
+
+        /* Thinking states */
+        .thinking-1 .section-title::after {
+            content: ' — analyzing';
+            font-size: 14px;
+            font-style: italic;
+            color: #666;
+        }
+
+        .thinking-2 .section-title::after {
+            content: ' — understanding';
+            font-size: 14px;
+            font-style: italic;
+            color: #666;
+        }
+
+        .thinking-3 .section-title::after {
+            content: ' — filling';
+            font-size: 14px;
+            font-style: italic;
+            color: #666;
+        }
+
+        /* Subtle entrance animation */
+        .container {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div id="main-view">
-      <div class="header">
-        <div class="title">
-          <span>🤖</span>
-          <span>SmartFill AI</span>
+    <div class="container" id="container">
+        <div class="header">
+            <div class="masthead">
+                <h1 class="title">SmartFill</h1>
+                <a href="#" class="settings-link" id="settingsLink">settings</a>
+            </div>
+            <div class="profile-display">
+                <span id="profile-name">Loading...</span>
+                <span id="profile-email"></span>
+            </div>
         </div>
-        <div>
-          <button id="theme-toggle" class="settings-btn" title="Toggle theme">🌓</button>
-          <button id="settings-toggle" class="settings-btn">⚙️</button>
+
+        <div class="profile-section">
+            <h2 class="profile-header">Profile</h2>
+            <div class="profile-details">
+                <div class="profile-name">Tushar Mehta</div>
+                <div class="profile-email">mehtatushar800@gmail.com</div>
+            </div>
+
         </div>
-      </div>
-      
-      <div class="content">
-        <div id="profile-status" class="profile-status">Profile: Not set</div>
-        
-        <button id="autofill-btn" class="autofill-btn">
-          ✨ Smart Fill Form
-        </button>
 
-        <button id="undo-btn" class="btn btn-secondary hidden" style="width:100%; margin-bottom: 10px;">↩️ Undo Last Fill</button>
+        <div class="main-content">
+            <h2 class="section-title" id="sectionTitle">Form Analysis</h2>
+            <p class="description" id="description">
+                I will carefully read the form fields and intelligently populate them using your profile information.
+            </p>
+            
+            <div class="primary-action">
+                <button class="fill-button" id="fillButton">Begin Analysis</button>
+            </div>
 
-        <div id="spinner" class="spinner hidden"></div>
+            <div class="secondary-actions">
+                <a href="#" class="secondary-link" id="previewLink">preview fields</a>
+                <a href="#" class="secondary-link" id="undoLink">undo last fill</a>
+                <a href="#" class="secondary-link" id="historyLink">view history</a>
+            </div>
+        </div>
 
-        <div id="status" class="status">Ready to fill forms intelligently</div>
-      </div>
+        <div class="status-section">
+            <span class="status-indicator"></span>
+            <span>Ready</span>
+        </div>
+
+        <div class="footer">
+            <span>Quick fill: <kbd class="shortcut">⌘⇧F</kbd></span>
+            <span>v1.0.1</span>
+        </div>
     </div>
 
-    <div id="settings-view" class="hidden">
-      <div class="header">
-        <div class="title">
-          <span>⚙️</span>
-          <span>Settings</span>
-        </div>
-        <button id="back-btn" class="back-btn">← Back</button>
-      </div>
-      
-      <div class="content">
-        <div class="form-section">
-          <div class="section-title">API Configuration</div>
-          <div class="form-group">
-            <label>Claude API Key</label>
-            <input type="password" id="api-key" placeholder="sk-ant-api03-...">
-            <button id="save-key-btn" class="btn" style="margin-top: 12px; width: 100%;">💾 Save API Key</button>
-          </div>
-        </div>
-        
-        <div class="divider"></div>
-        
-        <div class="form-section">
-          <div class="section-title">Your Profile</div>
-          <div class="auto-save-indicator">✓ Changes save automatically</div>
-          
-          <div class="form-group">
-            <label>Full Name</label>
-            <input type="text" id="name" placeholder="John Smith">
-          </div>
-          
-          <div class="form-group">
-            <label>Email Address</label>
-            <input type="email" id="email" placeholder="john@example.com">
-          </div>
-          
-          <div class="form-group">
-            <label>Phone Number</label>
-            <input type="tel" id="phone" placeholder="+1 (555) 123-4567">
-          </div>
-          
-          <div class="form-group">
-            <label>Profession</label>
-            <input type="text" id="profession" placeholder="Software Engineer">
-          </div>
-          
-          <div class="form-group">
-            <label>About Me</label>
-            <textarea id="about" rows="4" placeholder="Brief description about yourself, your experience, interests, etc..."></textarea>
-          </div>
-          
-          <button id="expand-profile-btn" class="btn btn-secondary" style="width: 100%; margin-top: 16px;">
-            📝 Edit Complete Profile
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+    <div class="notification" id="notification"></div>
 
-  <div id="preview-overlay" class="preview-overlay hidden">
-    <div class="preview-modal">
-      <h3>Preview Fields to Fill</h3>
-      <div id="preview-list" class="preview-list"></div>
-      <button id="confirm-fill-btn" class="btn" style="width:100%; margin-top:10px;">Fill Form</button>
-      <button id="cancel-preview-btn" class="btn btn-secondary" style="width:100%; margin-top:10px;">Cancel</button>
-    </div>
-  </div>
-
-  <script src="popup.js"></script>
+    <script src="popup.js"></script>
 </body>
 </html>

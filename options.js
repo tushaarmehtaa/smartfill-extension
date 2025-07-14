@@ -1,85 +1,77 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const statusDiv = document.getElementById('status');
-  const themeToggle = document.getElementById('theme-toggle');
+    const form = document.getElementById('settings-form');
+    const notification = document.getElementById('notification');
 
-  function applyTheme(theme) {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }
+    // Define all the input fields based on the new HTML structure
+    const inputIds = [
+        'apiKey', 'name', 'email', 'phone', 'company', 'jobTitle',
+        'address', 'city', 'state', 'zip', 'country', 'customBio',
+        // Professional Details
+        'experience', 'currentSalary', 'expectedSalary', 'noticePeriod', 'availability', 'workAuthorization',
+        // Skills & Education
+        'skills', 'education', 'university', 'graduationYear', 'certifications',
+        // Online Presence
+        'linkedin', 'github', 'portfolio', 'twitter',
+        // Personal Information
+        'dateOfBirth', 'gender', 'pronouns', 'ethnicity', 'veteranStatus', 'disability',
+        // Additional Bio
+        'coverLetter'
+    ];
 
-  // Define all profile input elements
-  const inputs = {
-    name: document.getElementById('profile-name'),
-    email: document.getElementById('profile-email'),
-    profession: document.getElementById('profile-profession'),
-    company: document.getElementById('profile-company'),
-    linkedin: document.getElementById('profile-linkedin'),
-    github: document.getElementById('profile-github'),
-    portfolio: document.getElementById('profile-portfolio'),
-    phone: document.getElementById('profile-phone'),
-    street: document.getElementById('profile-street'),
-    city: document.getElementById('profile-city'),
-    state: document.getElementById('profile-state'),
-    zip: document.getElementById('profile-zip'),
-    country: document.getElementById('profile-country'),
-    about: document.getElementById('profile-about'),
-    resume: document.getElementById('profile-resume'),
-    coverLetter: document.getElementById('profile-cover-letter'),
-  };
+    const inputs = {};
+    inputIds.forEach(id => {
+        inputs[id] = document.getElementById(id);
+    });
 
-  const defaultProfile = Object.keys(inputs).reduce((acc, key) => ({ ...acc, [key]: '' }), {});
+    // Load existing settings from storage and populate the form
+    function loadSettings() {
+        chrome.storage.local.get(['userProfile', 'apiKey'], (result) => {
+            // Handle API Key
+            if (inputs.apiKey) {
+                inputs.apiKey.value = result.apiKey || '';
+            }
 
-  let userProfile = { ...defaultProfile };
-  let saveTimeout;
+            // Handle User Profile
+            const userProfile = result.userProfile || {};
+            inputIds.forEach(id => {
+                // Skip apiKey as it's handled separately
+                if (id === 'apiKey') return;
 
-  // Load the existing profile from storage and populate the form
-  chrome.storage.local.get(['userProfile', 'theme'], (result) => {
-    if (result.userProfile) {
-      userProfile = { ...defaultProfile, ...result.userProfile };
-    }
-    for (const key in inputs) {
-      if (inputs[key]) {
-        inputs[key].value = userProfile[key] || '';
-      }
-    }
-    if (result.theme) {
-      applyTheme(result.theme);
-    }
-  });
-
-  // Function to handle input changes and save the profile
-  function handleProfileChange() {
-    for (const key in inputs) {
-      if (inputs[key]) {
-        userProfile[key] = inputs[key].value;
-      }
+                if (inputs[id]) {
+                    inputs[id].value = userProfile[id] || '';
+                }
+            });
+        });
     }
 
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(() => {
-      chrome.storage.local.set({ userProfile }, () => {
-        statusDiv.textContent = 'Profile saved!';
-        statusDiv.classList.remove('opacity-0');
-        setTimeout(() => {
-            statusDiv.classList.add('opacity-0');
-        }, 2000);
-      });
-    }, 500); // Debounce saving to avoid excessive writes
-  }
+    // Save settings to storage on form submission
+    function saveSettings(event) {
+        event.preventDefault(); // Prevent the form from submitting traditionally
 
-  // Attach event listeners to all input fields
-  for (const key in inputs) {
-    if (inputs[key]) {
-      inputs[key].addEventListener('input', handleProfileChange);
+        const apiKey = inputs.apiKey.value.trim();
+        // Build comprehensive user profile object
+        const userProfile = {};
+        inputIds.forEach(id => {
+            if (id === 'apiKey') return; // Skip apiKey as it's handled separately
+            if (inputs[id]) {
+                userProfile[id] = inputs[id].value.trim();
+            }
+        });
+
+        chrome.storage.local.set({ userProfile, apiKey }, () => {
+            // Show the success notification
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 2500); // Hide after 2.5 seconds
+        });
     }
-  }
 
-  themeToggle.addEventListener('click', () => {
-    const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
-    applyTheme(newTheme);
-    chrome.storage.local.set({ theme: newTheme });
-  });
+    // Attach the save function to the form's submit event
+    if (form) {
+        form.addEventListener('submit', saveSettings);
+    }
+
+    // Load the settings when the page is opened
+    loadSettings();
 });

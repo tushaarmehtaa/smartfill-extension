@@ -1,372 +1,279 @@
-// popup.js
-const defaultProfile = {
-  name: "", email: "", profession: "", about: "",
-  company: "", phone: "", street: "", city: "", state: "", zip: "", country: "",
-  linkedin: "", github: "", portfolio: "", resume: "", coverLetter: ""
-};
+class EditorialSmartFill {
+    constructor() {
+        // DOM Elements
+        this.container = document.getElementById('container');
+        this.sectionTitle = document.getElementById('sectionTitle');
+        this.description = document.getElementById('description');
+        this.fillButton = document.getElementById('fillButton');
+        this.notification = document.getElementById('notification');
+        this.profileName = document.getElementById('profile-name');
+        this.profileEmail = document.getElementById('profile-email');
 
-document.addEventListener('DOMContentLoaded', () => {
-  const mainView = document.getElementById('main-view');
-  const settingsView = document.getElementById('settings-view');
-  const settingsToggle = document.getElementById('settings-toggle');
-  const themeToggle = document.getElementById('theme-toggle');
-  const backBtn = document.getElementById('back-btn');
-  const apiKeyInput = document.getElementById('api-key');
-  const saveKeyBtn = document.getElementById('save-key-btn');
-  const autofillBtn = document.getElementById('autofill-btn');
-  const undoBtn = document.getElementById('undo-btn');
-  const spinner = document.getElementById('spinner');
-  const previewOverlay = document.getElementById('preview-overlay');
-  const previewList = document.getElementById('preview-list');
-  const confirmFillBtn = document.getElementById('confirm-fill-btn');
-  const cancelPreviewBtn = document.getElementById('cancel-preview-btn');
-  const statusDiv = document.getElementById('status');
-  const profileStatusDiv = document.getElementById('profile-status');
-  const expandProfileBtn = document.getElementById('expand-profile-btn');
+        // UI States
+        this.states = {
+            ready: {
+                title: 'Form Analysis',
+                description: 'I will carefully read the form fields and intelligently populate them using your profile information.',
+                buttonText: 'Begin Analysis'
+            },
+            analyzing: {
+                title: 'Reading Form',
+                description: 'Examining the structure and context of each field...',
+                buttonText: 'Analyzing...'
+            },
+            understanding: {
+                title: 'Matching Context',
+                description: 'Determining the most appropriate information for each field...',
+                buttonText: 'Processing...'
+            },
+            filling: {
+                title: 'Populating Fields',
+                description: 'Carefully entering your information...',
+                buttonText: 'Filling...'
+            }
+        };
 
-  function applyTheme(theme) {
-    document.body.classList.toggle('dark', theme === 'dark');
-  }
+        // Stored Data
+        this.userProfile = null;
+        this.apiKey = null;
 
-  // Profile input fields
-  const nameInput = document.getElementById('name');
-  const emailInput = document.getElementById('email');
-  const phoneInput = document.getElementById('phone');
-  const professionInput = document.getElementById('profession');
-  const aboutInput = document.getElementById('about');
-
-  let userProfile = { ...defaultProfile };
-  let isSettingsVisible = false;
-  let lastFrameIds = [];
-
-  // Load data from storage
-  function loadData() {
-    chrome.storage.local.get(['userProfile', 'apiKey', 'theme'], (result) => {
-      if (result.userProfile) {
-        userProfile = { ...defaultProfile, ...result.userProfile };
-        updateProfileDisplay();
-        populateProfileInputs();
-      }
-      if (result.apiKey) {
-        apiKeyInput.value = result.apiKey;
-      }
-      if (result.theme) {
-        applyTheme(result.theme);
-      }
-    });
-  }
-
-  // Update profile status display
-  function updateProfileDisplay() {
-    const name = userProfile.name || 'Not set';
-    const email = userProfile.email ? ` (${userProfile.email})` : '';
-    profileStatusDiv.textContent = `Profile: ${name}${email}`;
-  }
-
-  // Populate profile input fields
-  function populateProfileInputs() {
-    if (nameInput) nameInput.value = userProfile.name || '';
-    if (emailInput) emailInput.value = userProfile.email || '';
-    if (phoneInput) phoneInput.value = userProfile.phone || '';
-    if (professionInput) professionInput.value = userProfile.profession || '';
-    if (aboutInput) aboutInput.value = userProfile.about || '';
-  }
-
-  // Save profile data
-  function saveProfile() {
-    const updatedProfile = {
-      ...userProfile,
-      name: nameInput?.value || '',
-      email: emailInput?.value || '',
-      phone: phoneInput?.value || '',
-      profession: professionInput?.value || '',
-      about: aboutInput?.value || ''
-    };
-    
-    userProfile = updatedProfile;
-    chrome.storage.local.set({ userProfile }, () => {
-      updateProfileDisplay();
-    });
-  }
-
-  // Toggle settings view
-  settingsToggle.addEventListener('click', () => {
-    isSettingsVisible = true;
-    mainView.classList.add('hidden');
-    settingsView.classList.remove('hidden');
-  });
-
-  // Theme toggle
-  themeToggle.addEventListener('click', () => {
-    const newTheme = document.body.classList.contains('dark') ? 'light' : 'dark';
-    applyTheme(newTheme);
-    chrome.storage.local.set({ theme: newTheme });
-  });
-
-  // Back button
-  backBtn.addEventListener('click', () => {
-    isSettingsVisible = false;
-    mainView.classList.remove('hidden');
-    settingsView.classList.add('hidden');
-  });
-
-  // Save API key
-  saveKeyBtn.addEventListener('click', () => {
-    const apiKey = apiKeyInput.value.trim();
-    if (apiKey) {
-      chrome.storage.local.set({ apiKey }, () => {
-        statusDiv.textContent = 'API Key saved!';
-        setTimeout(() => statusDiv.textContent = '', 2000);
-      });
-    } else {
-      statusDiv.textContent = 'Please enter a valid API key.';
-      setTimeout(() => statusDiv.textContent = '', 2000);
+        // Initial Setup
+        this.fillButton.disabled = true; // Disable button until data is loaded
+        this.initializeEventListeners();
+        this.loadInitialData();
     }
-  });
 
-  // Auto-save profile on input changes (debounced)
-  let saveTimeout;
-  function debouncedSave() {
-    clearTimeout(saveTimeout);
-    saveTimeout = setTimeout(saveProfile, 500);
-  }
-
-  [nameInput, emailInput, phoneInput, professionInput, aboutInput].forEach(input => {
-    if (input) {
-      input.addEventListener('input', debouncedSave);
+    initializeEventListeners() {
+        this.fillButton.addEventListener('click', () => this.handleSmartFill());
+        document.getElementById('settingsLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            chrome.runtime.openOptionsPage();
+        });
+        // Placeholder links for unimplemented features
+        document.getElementById('previewLink').addEventListener('click', (e) => e.preventDefault());
+        document.getElementById('undoLink').addEventListener('click', (e) => e.preventDefault());
+        document.getElementById('historyLink').addEventListener('click', (e) => e.preventDefault());
     }
-  });
 
-  // Expand profile button (opens full options page)
-  expandProfileBtn.addEventListener('click', () => {
-    chrome.runtime.openOptionsPage();
-  });
+    // Load and store profile and API key once when the popup opens.
+    async loadInitialData() {
+        try {
+            const { userProfile, apiKey } = await chrome.storage.local.get(['userProfile', 'apiKey']);
+            this.userProfile = userProfile;
+            this.apiKey = apiKey;
 
-  function showSpinner() { spinner.classList.remove('hidden'); }
-  function hideSpinner() { spinner.classList.add('hidden'); }
-
-  function showPreview(values, fields) {
-    previewList.innerHTML = '';
-    fields.forEach(f => {
-      const val = values[f.id] || '';
-      const item = document.createElement('div');
-      item.textContent = `${f.label || f.name || f.id}: ${val}`;
-      previewList.appendChild(item);
-    });
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'highlight_fields', fieldIds: fields.map(f => f.id) });
-      }
-    });
-    previewOverlay.classList.remove('hidden');
-  }
-
-  function hidePreview() {
-    previewOverlay.classList.add('hidden');
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'clear_highlights' });
-      }
-    });
-  }
-
-  function notify(message) {
-    const iconData = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO++uLsAAAAASUVORK5CYII=';
-    chrome.notifications.create({ type: 'basic', iconUrl: iconData, title: 'SmartFill', message });
-  }
-
-  function startAutofill() {
-    statusDiv.textContent = 'Scanning form fields...';
-    showSpinner();
-    statusDiv.textContent = 'Scanning form fields...';
-
-    chrome.storage.local.get(['apiKey'], (result) => {
-      const apiKey = result.apiKey;
-      if (!apiKey) {
-        statusDiv.textContent = 'Please set your Claude API key in settings.';
-        return;
-      }
-
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (!tabs[0]) {
-          statusDiv.textContent = 'Could not find active tab.';
-          return;
+            if (this.userProfile && this.userProfile.name) {
+                this.profileName.textContent = this.userProfile.name;
+                this.profileEmail.textContent = this.userProfile.email;
+            } else {
+                this.profileName.textContent = 'Profile Not Set';
+                this.profileEmail.textContent = 'Please complete in settings.';
+            }
+        } catch (error) {
+            console.error('Failed to load initial data:', error);
+            this.showNotification('Could not load settings.', 'error');
+        } finally {
+            // This ensures the UI is always reset, even if loading fails.
+            this.resetToReady();
         }
-        const tabId = tabs[0].id;
+    }
 
-        // Scan all frames for forms
-        chrome.webNavigation.getAllFrames({ tabId }, (frames) => {
-          const scanPromises = frames.map(frame => {
-            return new Promise((resolve) => {
-              chrome.tabs.sendMessage(tabId, { action: 'scan_form', frameId: frame.frameId }, { frameId: frame.frameId }, (response) => {
-                if (chrome.runtime.lastError || !response) {
-                  resolve({ fields: [], pageContext: '', frameId: frame.frameId });
-                } else {
-                  resolve({ ...response, frameId: frame.frameId });
-                }
-              });
-            });
-          });
+    // Main function to orchestrate the autofill process.
+    async handleSmartFill() {
+        // 1. Use the data loaded at initialization.
+        const { userProfile, apiKey } = this;
 
-          Promise.all(scanPromises).then(results => {
-            let allFields = [];
-            let pageContext = '';
+        // 2. Validate data before proceeding.
+        if (!apiKey) {
+            this.showNotification('API Key is not set. Please go to settings.', 'error');
+            return chrome.runtime.openOptionsPage();
+        }
+        if (!userProfile || !userProfile.name) {
+            this.showNotification('User profile is empty. Please complete it in settings.', 'error');
+            return chrome.runtime.openOptionsPage();
+        }
 
-            results.forEach(result => {
-              if (result && result.fields && result.fields.length > 0) {
-                const fieldsWithFrameId = result.fields.map(field => ({ ...field, frameId: result.frameId }));
-                allFields = allFields.concat(fieldsWithFrameId);
-              }
-              if (result && result.frameId === 0 && result.pageContext) {
-                pageContext = result.pageContext;
-              }
-            });
-
+        try {
+            // 3. Scan for fields.
+            this.setState('analyzing');
+            const allFields = await this.scanAllFramesForForms();
             if (allFields.length === 0) {
-              statusDiv.textContent = 'No fillable fields found on this page.';
-              return;
+                this.showNotification('No fillable fields were found on this page.', 'info');
+                return this.resetToReady();
             }
 
-            statusDiv.textContent = `Found ${allFields.length} fields. AI is thinking...`;
+            // 4. Process with AI.
+            this.setState('understanding');
+            const aiResponse = await this.processWithAI(allFields, userProfile, apiKey);
+            if (aiResponse.error) throw new Error(aiResponse.error);
+            if (!aiResponse.values || Object.keys(aiResponse.values).length === 0) {
+                this.showNotification('The AI did not provide any values to fill.', 'info');
+                return this.resetToReady();
+            }
 
-            chrome.runtime.sendMessage({
-              action: 'get_ai_fills',
-              fields: allFields,
-              profile: userProfile,
-              apiKey: apiKey,
-              pageContext: pageContext
-            }, (aiResponse) => {
-              hideSpinner();
-              if (chrome.runtime.lastError || !aiResponse) {
-                statusDiv.textContent = `Error: ${chrome.runtime.lastError?.message || 'Unknown error'}`;
-                notify(statusDiv.textContent);
-                return;
-              }
-              if (aiResponse.error) {
-                statusDiv.textContent = `AI Error: ${aiResponse.error}`;
-                notify(statusDiv.textContent);
-                return;
-              }
+            // 5. Convert AI response to array format expected by content script.
+            const valuesArray = Object.entries(aiResponse.values).map(([id, value]) => ({ id, value }));
+            console.log('🔄 Converted AI values to array format:', valuesArray);
+            
+            // 6. Fill the form.
+            this.setState('filling');
+            const fillResult = await this.fillAllFrames(valuesArray, allFields);
+            this.showNotification(`Form completed. ${fillResult.totalFilledCount} fields filled.`, 'success');
+            this.resetToReady();
 
-              statusDiv.textContent = 'Review fields then confirm.';
-              lastFrameIds = Array.from(new Set(allFields.map(f => f.frameId)));
-              previewOverlay.dataset.tabId = tabId;
-              previewOverlay.dataset.pageContext = pageContext;
-              previewOverlay.dataset.apiKey = apiKey;
-              previewOverlay.dataset.values = JSON.stringify(aiResponse.values);
-              previewOverlay.dataset.fields = JSON.stringify(allFields);
-              showPreview(aiResponse.values, allFields);
+        } catch (error) {
+            console.error('SmartFill Error:', error);
+            this.showNotification(error.message || 'An unknown error occurred.', 'error');
+            this.resetToReady();
+        }
+    }
+
+    // Communicates with content scripts to find all form fields.
+    async scanAllFramesForForms() {
+        console.log('🔍 Starting form scan...');
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        console.log('📄 Active tab:', tab.url);
+        
+        try {
+            const frames = await chrome.webNavigation.getAllFrames({ tabId: tab.id });
+            console.log('🖼️ Found frames:', frames.length);
+            
+            const scanPromises = frames.map(async (frame, index) => {
+                try {
+                    console.log(`📨 Injecting content script into frame ${index} (ID: ${frame.frameId})`);
+                    
+                    // Inject the content script programmatically
+                    await chrome.scripting.executeScript({
+                        target: { tabId: tab.id, frameIds: [frame.frameId] },
+                        files: ['content.js']
+                    });
+                    
+                    console.log(`✅ Content script injected into frame ${index}`);
+                    
+                    // Now send the scan message
+                    return new Promise(resolve => {
+                        console.log(`📨 Sending scan message to frame ${index}`);
+                        chrome.tabs.sendMessage(tab.id, { action: 'scan_form' }, { frameId: frame.frameId }, response => {
+                            if (chrome.runtime.lastError) {
+                                console.log(`❌ Frame ${index} message error:`, chrome.runtime.lastError.message);
+                                return resolve([]);
+                            }
+                            console.log(`✅ Frame ${index} response:`, response);
+                            if (!response || !response.fields) {
+                                console.log(`⚠️ Frame ${index} returned invalid response`);
+                                return resolve([]);
+                            }
+                            const fieldsWithFrameId = response.fields.map(f => ({ ...f, frameId: frame.frameId }));
+                            console.log(`📝 Frame ${index} found ${fieldsWithFrameId.length} fields`);
+                            resolve(fieldsWithFrameId);
+                        });
+                    });
+                } catch (injectionError) {
+                    console.log(`❌ Failed to inject into frame ${index}:`, injectionError.message);
+                    return [];
+                }
             });
-          });
-        });
-      });
-    });
-  }
 
-  autofillBtn.addEventListener('click', startAutofill);
-
-  confirmFillBtn.addEventListener('click', () => {
-    hidePreview();
-    showSpinner();
-    const tabId = parseInt(previewOverlay.dataset.tabId, 10);
-    const apiKey = previewOverlay.dataset.apiKey;
-    const values = JSON.parse(previewOverlay.dataset.values || '{}');
-    const fields = JSON.parse(previewOverlay.dataset.fields || '[]');
-
-    // Group values by frameId
-    const valuesByFrame = {};
-    fields.forEach(f => {
-      if (values[f.id]) {
-        if (!valuesByFrame[f.frameId]) { valuesByFrame[f.frameId] = {}; }
-        valuesByFrame[f.frameId][f.id] = values[f.id];
-      }
-    });
-
-    const fillPromises = Object.keys(valuesByFrame).map(frameIdStr => {
-      const frameId = parseInt(frameIdStr, 10);
-      return new Promise((resolve) => {
-        chrome.tabs.sendMessage(tabId, {
-          action: 'fill_form',
-          values: valuesByFrame[frameId]
-        }, { frameId }, (fillResp) => {
-          if (chrome.runtime.lastError) {
-            resolve({ filled: 0, errors: [`Frame ${frameId}: ${chrome.runtime.lastError.message}`] });
-          } else if (fillResp) {
-            resolve({ ...fillResp, frameId });
-          } else {
-            resolve({ filled: 0, errors: [`Frame ${frameId}: No response from content script.`] });
-          }
-        });
-      });
-    });
-
-    Promise.all(fillPromises).then(results => {
-      hideSpinner();
-      let totalFilledCount = 0;
-      const allErrors = [];
-      lastFrameIds = [];
-      results.forEach(res => {
-        totalFilledCount += res.filled || 0;
-        if (res.errors && res.errors.length > 0) {
-          allErrors.push(...res.errors);
+            const results = await Promise.all(scanPromises);
+            const allFields = results.flat();
+            console.log('🎯 Total fields found:', allFields.length);
+            console.log('📋 Field details:', allFields);
+            return allFields;
+        } catch (error) {
+            console.error('❌ Error during frame scanning:', error);
+            return [];
         }
-        if (res.filled > 0) {
-          lastFrameIds.push(res.frameId);
+    }
+
+    // Communicates with the background script to get AI-powered fills.
+    async processWithAI(fields, userProfile, apiKey) {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        return chrome.runtime.sendMessage({
+            action: 'get_holistic_fills',
+            fields,
+            userProfile,
+            apiKey,
+            pageContext: { url: tab.url, title: tab.title }
+        });
+    }
+
+    // Communicates with content scripts to fill the form fields.
+    async fillAllFrames(values, fields) {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        const fieldsByFrame = {};
+        fields.forEach(f => {
+            if (!fieldsByFrame[f.frameId]) fieldsByFrame[f.frameId] = [];
+            fieldsByFrame[f.frameId].push(f);
+        });
+
+        const fillPromises = Object.keys(fieldsByFrame).map(async frameIdStr => {
+            const frameId = parseInt(frameIdStr, 10);
+            try {
+                // Ensure content script is injected before sending fill message
+                await chrome.scripting.executeScript({
+                    target: { tabId: tab.id, frameIds: [frameId] },
+                    files: ['content.js']
+                });
+                
+                return new Promise(resolve => {
+                    chrome.tabs.sendMessage(tab.id, {
+                        action: 'fill_form',
+                        values: values // Send all values; content script will pick what it needs
+                    }, { frameId }, response => {
+                        if (chrome.runtime.lastError) {
+                            return resolve({ totalFilledCount: 0, errors: [chrome.runtime.lastError.message] });
+                        }
+                        resolve(response);
+                    });
+                });
+            } catch (error) {
+                return { totalFilledCount: 0, errors: [`Failed to inject into frame ${frameId}: ${error.message}`] };
+            }
+        });
+
+        const results = await Promise.all(fillPromises);
+        const totalFilledCount = results.reduce((sum, res) => sum + (res.filledCount || 0), 0);
+        return { totalFilledCount };
+    }
+
+    // --- UI Helper Functions ---
+
+    setState(stateName) {
+        const state = this.states[stateName];
+        this.sectionTitle.textContent = state.title;
+        this.description.textContent = state.description;
+        this.fillButton.textContent = state.buttonText;
+        this.fillButton.disabled = stateName !== 'ready';
+
+        this.container.className = 'container'; // Reset classes
+        if (stateName !== 'ready') {
+            this.container.classList.add('loading');
         }
-      });
+    }
 
-      if (allErrors.length > 0) {
-        statusDiv.textContent = `Error: ${allErrors[0]}`;
-        notify(statusDiv.textContent);
-        undoBtn.classList.add('hidden');
-      } else {
-        statusDiv.textContent = totalFilledCount > 0
-          ? `Successfully filled ${totalFilledCount} fields!`
-          : 'No fields were filled. Check if the form is compatible.';
-        notify(statusDiv.textContent);
-        undoBtn.classList.toggle('hidden', totalFilledCount === 0);
-      }
+    resetToReady() {
+        this.setState('ready');
+    }
+
+    showNotification(message, type = 'info') {
+        this.notification.textContent = message;
+        this.notification.className = `notification ${type} show`;
+        setTimeout(() => this.notification.classList.remove('show'), 3500);
+    }
+}
+
+// Initialize the class once the DOM is loaded.
+document.addEventListener('DOMContentLoaded', () => {
+    new EditorialSmartFill();
+});
+document.querySelectorAll('a, button').forEach(element => {
+    element.addEventListener('mouseenter', function() {
+        if (!this.disabled) {
+            this.style.transform = 'translateY(-1px)';
+        }
     });
-  });
-
-  cancelPreviewBtn.addEventListener('click', () => {
-    hidePreview();
-    statusDiv.textContent = 'Fill cancelled.';
-  });
-
-  undoBtn.addEventListener('click', () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (!tabs[0]) return;
-      const promises = lastFrameIds.map(frameId => new Promise((resolve) => {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'undo_last_fill' }, { frameId }, () => resolve());
-      }));
-      Promise.all(promises).then(() => {
-        statusDiv.textContent = 'Undo complete.';
-        notify('Last fill undone');
-        undoBtn.classList.add('hidden');
-      });
+    
+    element.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
     });
-  });
-
-  // Listen for changes from the options page
-  chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (changes.userProfile) {
-      userProfile = { ...defaultProfile, ...changes.userProfile.newValue };
-      updateProfileDisplay();
-      populateProfileInputs();
-    }
-    if (changes.theme) {
-      applyTheme(changes.theme.newValue);
-    }
-  });
-
-  // Initialize
-  loadData();
-
-  chrome.storage.local.get('autoFillTrigger', (res) => {
-    if (res.autoFillTrigger) {
-      chrome.storage.local.remove('autoFillTrigger');
-      startAutofill();
-    }
-  });
 });
