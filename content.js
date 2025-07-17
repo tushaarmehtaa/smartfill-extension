@@ -217,6 +217,71 @@ function fillForm(values) {
     return { filledCount, errors };
 }
 
+/**
+ * Undoes a form fill operation by clearing the specified fields.
+ * @param {Array<Object>} fields Array of field objects to clear
+ * @returns {Object} Result object with success status and cleared count
+ */
+function undoFill(fields) {
+    console.log('↩️ Content script: Starting undo operation for', fields.length, 'fields');
+    
+    let clearedCount = 0;
+    const errors = [];
+    
+    fields.forEach(field => {
+        try {
+            // Try to find the field by various selectors
+            let element = null;
+            
+            // Try by ID first
+            if (field.id) {
+                element = document.getElementById(field.id);
+            }
+            
+            // Try by name if ID didn't work
+            if (!element && field.name) {
+                element = document.querySelector(`[name="${field.name}"]`);
+            }
+            
+            // Try by placeholder if still not found
+            if (!element && field.placeholder) {
+                element = document.querySelector(`[placeholder="${field.placeholder}"]`);
+            }
+            
+            if (element) {
+                // Clear the field based on its type
+                if (element.type === 'checkbox' || element.type === 'radio') {
+                    element.checked = false;
+                } else if (element.tagName.toLowerCase() === 'select') {
+                    element.selectedIndex = 0; // Reset to first option
+                } else {
+                    element.value = '';
+                }
+                
+                // Trigger change event to notify any listeners
+                element.dispatchEvent(new Event('change', { bubbles: true }));
+                element.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                clearedCount++;
+                console.log(`✅ Cleared field: ${field.id || field.name}`);
+            } else {
+                console.log(`❌ Field not found for undo: ${field.id || field.name}`);
+                errors.push(`Field "${field.id || field.name}" not found for undo.`);
+            }
+        } catch (error) {
+            console.error(`❌ Error clearing field ${field.id || field.name}:`, error);
+            errors.push(`Error clearing field "${field.id || field.name}": ${error.message}`);
+        }
+    });
+    
+    console.log(`↩️ Undo complete: ${clearedCount} fields cleared, ${errors.length} errors`);
+    return { 
+        success: clearedCount > 0, 
+        clearedCount, 
+        errors 
+    };
+}
+
 // Main message listener to communicate with the rest of the extension.
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('📨 Content script: Received message:', request);
@@ -228,11 +293,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log('📤 Content script: Sending response:', response);
         sendResponse(response);
     } else if (request.action === 'fill_form') {
-        console.log('📝 Content script: Processing fill_form request');
+        console.log('✏️ Content script: Processing fill_form request');
         if (request.values && Array.isArray(request.values)) {
             sendResponse(fillForm(request.values));
         } else {
             sendResponse({ filledCount: 0, errors: ['No values provided or values is not an array.'] });
+        }
+    } else if (request.action === 'undo_fill') {
+        console.log('↩️ Content script: Processing undo_fill request');
+        if (request.fields && Array.isArray(request.fields)) {
+            sendResponse(undoFill(request.fields));
+        } else {
+            sendResponse({ success: false, error: 'No fields provided for undo operation.' });
         }
     } else {
         console.log('❓ Content script: Unknown action:', request.action);

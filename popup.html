@@ -48,16 +48,28 @@
 
         /* Header */
         .header {
-            margin-bottom: 36px;
+            margin-bottom: 20px;
             border-bottom: 1px solid #e8e8e8;
-            padding-bottom: 24px;
+            padding-bottom: 16px;
         }
 
         .masthead {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 16px;
+            align-items: center;
+            margin-bottom: 0;
+        }
+
+        .title-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
         }
 
         .title {
@@ -67,19 +79,64 @@
             text-transform: uppercase;
             color: #1a1a1a;
             font-family: 'Times New Roman', serif;
+            margin: 0;
         }
 
-        .settings-link {
+        .profile-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
             font-size: 14px;
-            color: #666;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
             text-decoration: none;
-            border-bottom: 1px solid transparent;
-            transition: border-color 0.3s ease;
-            font-style: italic;
+            border: 2px solid transparent;
         }
 
-        .settings-link:hover {
-            border-bottom-color: #666;
+        .profile-icon:hover {
+            transform: scale(1.05);
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .profile-section {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        .profile-name {
+            display: none;
+        }
+
+        /* Tooltip */
+        .profile-icon::after {
+            content: attr(title);
+            position: absolute;
+            bottom: -28px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .profile-icon:hover::after {
+            opacity: 1;
+            visibility: visible;
         }
 
         .subtitle {
@@ -89,34 +146,55 @@
             letter-spacing: 0.5px;
         }
 
-        /* Profile Section */
-        .profile-section {
-            margin-bottom: 40px;
+        /* Value Proposition Section */
+        .value-section {
+            margin-bottom: 24px;
+            text-align: center;
         }
 
-        .profile-header {
-            font-size: 16px;
-            font-weight: normal;
-            margin-bottom: 16px;
-            color: #1a1a1a;
-            letter-spacing: 1px;
-        }
-
-        .profile-details {
-            font-size: 15px;
-            line-height: 1.7;
-            color: #444;
-            margin-bottom: 16px;
-        }
-
-        .profile-name {
+        .value-title {
+            font-size: 18px;
             font-weight: 600;
+            margin-bottom: 8px;
             color: #1a1a1a;
+            letter-spacing: 0.5px;
         }
 
-        .profile-email {
+        .value-subtitle {
+            font-size: 14px;
             color: #666;
-            font-style: italic;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .features-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #444;
+            line-height: 1.5;
+            padding: 4px 0;
+        }
+
+        .feature-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+            width: 18px;
+            text-align: left;
+            opacity: 0.9;
+        }
+
+        .feature-text {
+            flex: 1;
+            font-weight: 400;
         }
 
         .profile-stats {
@@ -150,44 +228,59 @@
         }
 
         .description {
-            font-size: 15px;
-            line-height: 1.6;
-            color: #555;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #777;
             text-align: center;
-            margin-bottom: 32px;
+            margin-bottom: 20px;
             font-style: italic;
+            font-weight: 400;
         }
 
         /* Primary Action */
         .primary-action {
             text-align: center;
-            margin-bottom: 28px;
+            margin-bottom: 12px;
         }
 
         .fill-button {
             background: #1a1a1a;
             color: white;
             border: none;
-            padding: 16px 32px;
+            padding: 18px 36px;
             font-size: 15px;
             font-family: inherit;
+            font-weight: 500;
             letter-spacing: 1px;
             text-transform: uppercase;
             cursor: pointer;
             transition: all 0.3s ease;
-            border-radius: 0;
-            min-width: 200px;
+            border-radius: 4px;
+            min-width: 220px;
+            box-shadow: 0 2px 8px rgba(26, 26, 26, 0.15);
         }
 
         .fill-button:hover {
             background: #333;
-            letter-spacing: 2px;
+            letter-spacing: 1.5px;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(26, 26, 26, 0.25);
         }
 
         .fill-button:disabled {
             background: #999;
             cursor: not-allowed;
             letter-spacing: 1px;
+        }
+
+        /* Micro Caption */
+        .micro-caption {
+            font-size: 13px;
+            color: #999;
+            text-align: center;
+            font-style: italic;
+            margin-bottom: 24px;
+            letter-spacing: 0.3px;
         }
 
         /* Secondary Actions */
@@ -308,6 +401,189 @@
             background: #dc2626;
         }
 
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80%;
+            overflow: hidden;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.show .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid #e5e5e5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #666;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px 24px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid #e5e5e5;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .modal-button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .modal-button:hover {
+            background: #f5f5f5;
+        }
+
+        .modal-button.primary {
+            background: #1a1a1a;
+            color: white;
+            border-color: #1a1a1a;
+        }
+
+        .modal-button.primary:hover {
+            background: #333;
+        }
+
+        .modal-button.danger {
+            background: #dc2626;
+            color: white;
+            border-color: #dc2626;
+        }
+
+        .modal-button.danger:hover {
+            background: #b91c1c;
+        }
+
+        /* Field Preview Styles */
+        .field-item {
+            padding: 12px;
+            border: 1px solid #e5e5e5;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            background: #fafafa;
+        }
+
+        .field-name {
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+
+        .field-value {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .field-type {
+            font-size: 12px;
+            color: #888;
+            font-style: italic;
+        }
+
+        /* History Styles */
+        .history-item {
+            padding: 16px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-date {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .history-url {
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+
+        .history-fields {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #888;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
         /* Thinking states */
         .thinking-1 .section-title::after {
             content: ' — analyzing';
@@ -351,38 +627,50 @@
     <div class="container" id="container">
         <div class="header">
             <div class="masthead">
-                <h1 class="title">SmartFill</h1>
-                <a href="#" class="settings-link" id="settingsLink">settings</a>
-            </div>
-            <div class="profile-display">
-                <span id="profile-name">Loading...</span>
-                <span id="profile-email"></span>
+                <div class="title-section">
+                    <img src="logo.png" alt="SmartFill Logo" class="logo">
+                    <h1 class="title">SmartFill</h1>
+                </div>
+                <div class="profile-section">
+                    <a href="#" class="profile-icon" id="settingsLink" title="Edit profile">
+                        <span id="profile-initial">T</span>
+                    </a>
+                    <div class="profile-name" id="profile-name">Loading...</div>
+                </div>
             </div>
         </div>
 
-        <div class="profile-section">
-            <h2 class="profile-header">Profile</h2>
-            <div class="profile-details">
-                <div class="profile-name">Tushar Mehta</div>
-                <div class="profile-email">mehtatushar800@gmail.com</div>
+        <div class="value-section">
+            <h2 class="value-title">Let's never fill a form manually again.</h2>
+            <p class="value-subtitle">
+                You've got better things to do. We'll handle the typing.
+            </p>
+            <div class="features-list">
+                <div class="feature-item">
+                    <span class="feature-text">✅ spots every field on the page</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-text">🧠 knows exactly what to fill</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-text">⚡ fills it faster than you can blink</span>
+                </div>
             </div>
-
         </div>
 
         <div class="main-content">
-            <h2 class="section-title" id="sectionTitle">Form Analysis</h2>
-            <p class="description" id="description">
-                I will carefully read the form fields and intelligently populate them using your profile information.
-            </p>
-            
             <div class="primary-action">
-                <button class="fill-button" id="fillButton">Begin Analysis</button>
+                <button class="fill-button" id="fillButton">⚡ LET'S FILL IT UP.</button>
+            </div>
+            
+            <div class="micro-caption">
+                You chill. We fill.
             </div>
 
             <div class="secondary-actions">
-                <a href="#" class="secondary-link" id="previewLink">preview fields</a>
-                <a href="#" class="secondary-link" id="undoLink">undo last fill</a>
-                <a href="#" class="secondary-link" id="historyLink">view history</a>
+                <a href="#" class="secondary-link" id="previewLink">🔍 preview before filling</a>
+                <a href="#" class="secondary-link" id="undoLink">↩️ undo last fill</a>
+                <a href="#" class="secondary-link" id="historyLink">📜 view history</a>
             </div>
         </div>
 
@@ -398,6 +686,66 @@
     </div>
 
     <div class="notification" id="notification"></div>
+
+    <!-- Preview Fields Modal -->
+    <div class="modal-overlay" id="previewModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Form Fields Preview</h3>
+                <button class="modal-close" id="previewModalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="previewModalBody">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <p>No form fields detected on the current page.</p>
+                    <p>Navigate to a page with forms and try again.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-button" id="previewModalCancel">Close</button>
+                <button class="modal-button primary" id="previewModalFill">Fill These Fields</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Undo Confirmation Modal -->
+    <div class="modal-overlay" id="undoModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Undo Last Fill</h3>
+                <button class="modal-close" id="undoModalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="undoModalBody">
+                <p>Are you sure you want to undo the last form fill operation?</p>
+                <p>This will clear all fields that were filled in the most recent operation.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-button" id="undoModalCancel">Cancel</button>
+                <button class="modal-button danger" id="undoModalConfirm">Undo Fill</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal-overlay" id="historyModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Fill History</h3>
+                <button class="modal-close" id="historyModalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="historyModalBody">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📚</div>
+                    <p>No fill history available.</p>
+                    <p>Your form fill history will appear here after you start using SmartFill.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-button" id="historyModalClose2">Close</button>
+                <button class="modal-button" id="historyClear">Clear History</button>
+            </div>
+        </div>
+    </div>
 
     <script src="popup.js"></script>
 </body>

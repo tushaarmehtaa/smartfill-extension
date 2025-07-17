@@ -2,34 +2,29 @@ class EditorialSmartFill {
     constructor() {
         // DOM Elements
         this.container = document.getElementById('container');
-        this.sectionTitle = document.getElementById('sectionTitle');
         this.description = document.getElementById('description');
         this.fillButton = document.getElementById('fillButton');
         this.notification = document.getElementById('notification');
         this.profileName = document.getElementById('profile-name');
-        this.profileEmail = document.getElementById('profile-email');
+        this.profileInitial = document.getElementById('profile-initial');
 
         // UI States
         this.states = {
             ready: {
-                title: 'Form Analysis',
-                description: 'I will carefully read the form fields and intelligently populate them using your profile information.',
-                buttonText: 'Begin Analysis'
+                description: 'You chill. We fill.',
+                buttonText: "LET'S FILL IT UP."
             },
             analyzing: {
-                title: 'Reading Form',
-                description: 'Examining the structure and context of each field...',
-                buttonText: 'Analyzing...'
+                description: 'scanning the page for forms...',
+                buttonText: 'scanning...'
             },
             understanding: {
-                title: 'Matching Context',
-                description: 'Determining the most appropriate information for each field...',
-                buttonText: 'Processing...'
+                description: 'matching your info to the fields...',
+                buttonText: 'processing...'
             },
             filling: {
-                title: 'Populating Fields',
-                description: 'Carefully entering your information...',
-                buttonText: 'Filling...'
+                description: 'filling it up for you...',
+                buttonText: 'filling...'
             }
         };
 
@@ -49,10 +44,22 @@ class EditorialSmartFill {
             e.preventDefault();
             chrome.runtime.openOptionsPage();
         });
-        // Placeholder links for unimplemented features
-        document.getElementById('previewLink').addEventListener('click', (e) => e.preventDefault());
-        document.getElementById('undoLink').addEventListener('click', (e) => e.preventDefault());
-        document.getElementById('historyLink').addEventListener('click', (e) => e.preventDefault());
+        // Feature links
+        document.getElementById('previewLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.showPreviewModal();
+        });
+        document.getElementById('undoLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.showUndoModal();
+        });
+        document.getElementById('historyLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.showHistoryModal();
+        });
+
+        // Modal event listeners
+        this.initializeModalListeners();
     }
 
     // Load and store profile and API key once when the popup opens.
@@ -64,10 +71,10 @@ class EditorialSmartFill {
 
             if (this.userProfile && this.userProfile.name) {
                 this.profileName.textContent = this.userProfile.name;
-                this.profileEmail.textContent = this.userProfile.email;
+                this.profileInitial.textContent = this.userProfile.name.charAt(0).toUpperCase();
             } else {
                 this.profileName.textContent = 'Profile Not Set';
-                this.profileEmail.textContent = 'Please complete in settings.';
+                this.profileInitial.textContent = '?';
             }
         } catch (error) {
             console.error('Failed to load initial data:', error);
@@ -118,6 +125,13 @@ class EditorialSmartFill {
             // 6. Fill the form.
             this.setState('filling');
             const fillResult = await this.fillAllFrames(valuesArray, allFields);
+            
+            // 7. Save to history for undo functionality
+            if (fillResult.totalFilledCount > 0) {
+                const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                await this.saveToHistory(tab.url, fillResult.totalFilledCount, allFields);
+            }
+            
             this.showNotification(`Form completed. ${fillResult.totalFilledCount} fields filled.`, 'success');
             this.resetToReady();
 
@@ -240,8 +254,10 @@ class EditorialSmartFill {
 
     setState(stateName) {
         const state = this.states[stateName];
-        this.sectionTitle.textContent = state.title;
-        this.description.textContent = state.description;
+        // Only update description if element exists
+        if (this.description) {
+            this.description.textContent = state.description;
+        }
         this.fillButton.textContent = state.buttonText;
         this.fillButton.disabled = stateName !== 'ready';
 
@@ -259,6 +275,294 @@ class EditorialSmartFill {
         this.notification.textContent = message;
         this.notification.className = `notification ${type} show`;
         setTimeout(() => this.notification.classList.remove('show'), 3500);
+    }
+
+    // --- Modal Functions ---
+
+    initializeModalListeners() {
+        // Preview Modal
+        const previewModal = document.getElementById('previewModal');
+        document.getElementById('previewModalClose').addEventListener('click', () => this.hideModal('previewModal'));
+        document.getElementById('previewModalCancel').addEventListener('click', () => this.hideModal('previewModal'));
+        document.getElementById('previewModalFill').addEventListener('click', () => {
+            this.hideModal('previewModal');
+            this.handleSmartFill();
+        });
+
+        // Undo Modal
+        const undoModal = document.getElementById('undoModal');
+        document.getElementById('undoModalClose').addEventListener('click', () => this.hideModal('undoModal'));
+        document.getElementById('undoModalCancel').addEventListener('click', () => this.hideModal('undoModal'));
+        document.getElementById('undoModalConfirm').addEventListener('click', () => {
+            this.hideModal('undoModal');
+            this.performUndo();
+        });
+
+        // History Modal
+        const historyModal = document.getElementById('historyModal');
+        document.getElementById('historyModalClose').addEventListener('click', () => this.hideModal('historyModal'));
+        document.getElementById('historyModalClose2').addEventListener('click', () => this.hideModal('historyModal'));
+        document.getElementById('historyClear').addEventListener('click', () => this.clearHistory());
+
+        // Close modals on overlay click
+        [previewModal, undoModal, historyModal].forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.hideModal(modal.id);
+                }
+            });
+        });
+    }
+
+    showModal(modalId) {
+        document.getElementById(modalId).classList.add('show');
+    }
+
+    hideModal(modalId) {
+        document.getElementById(modalId).classList.remove('show');
+    }
+
+    // --- Preview Fields Feature ---
+
+    async showPreviewModal() {
+        const previewModalBody = document.getElementById('previewModalBody');
+        const fillButton = document.getElementById('previewModalFill');
+        
+        try {
+            // Show loading state
+            previewModalBody.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><p>Scanning for form fields...</p></div>';
+            fillButton.disabled = true;
+            this.showModal('previewModal');
+
+            // Scan for fields
+            const allFields = await this.scanAllFramesForForms();
+            
+            if (allFields.length === 0) {
+                previewModalBody.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>No form fields detected on the current page.</p>
+                        <p>Navigate to a page with forms and try again.</p>
+                    </div>
+                `;
+                fillButton.disabled = true;
+                return;
+            }
+
+            // Generate AI values for preview
+            const values = await this.generateAIValues(allFields);
+            
+            // Display fields with their proposed values
+            let fieldsHtml = '';
+            allFields.forEach(field => {
+                const proposedValue = values[field.name] || values[field.id] || values[field.placeholder] || 'No match found';
+                fieldsHtml += `
+                    <div class="field-item">
+                        <div class="field-name">${field.name || field.id || field.placeholder || 'Unnamed Field'}</div>
+                        <div class="field-value">${proposedValue}</div>
+                        <div class="field-type">${field.type} • ${field.tagName.toLowerCase()}</div>
+                    </div>
+                `;
+            });
+
+            previewModalBody.innerHTML = `
+                <div style="margin-bottom: 16px;">
+                    <strong>Found ${allFields.length} form field${allFields.length !== 1 ? 's' : ''}</strong>
+                </div>
+                ${fieldsHtml}
+            `;
+            fillButton.disabled = false;
+
+        } catch (error) {
+            console.error('Preview error:', error);
+            previewModalBody.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">❌</div>
+                    <p>Error scanning form fields.</p>
+                    <p>${error.message}</p>
+                </div>
+            `;
+            fillButton.disabled = true;
+        }
+    }
+
+    // --- Undo Feature ---
+
+    async showUndoModal() {
+        const undoModalBody = document.getElementById('undoModalBody');
+        const confirmButton = document.getElementById('undoModalConfirm');
+        
+        try {
+            // Get last fill operation from storage
+            const { lastFillOperation } = await chrome.storage.local.get(['lastFillOperation']);
+            
+            if (!lastFillOperation) {
+                undoModalBody.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🤷</div>
+                        <p>No recent fill operation found.</p>
+                        <p>There's nothing to undo.</p>
+                    </div>
+                `;
+                confirmButton.disabled = true;
+            } else {
+                const date = new Date(lastFillOperation.timestamp).toLocaleString();
+                undoModalBody.innerHTML = `
+                    <p><strong>Last Fill Operation:</strong></p>
+                    <p>Date: ${date}</p>
+                    <p>URL: ${lastFillOperation.url}</p>
+                    <p>Fields filled: ${lastFillOperation.fieldsCount}</p>
+                    <br>
+                    <p>Are you sure you want to undo this operation?</p>
+                    <p>This will clear all fields that were filled.</p>
+                `;
+                confirmButton.disabled = false;
+            }
+        } catch (error) {
+            console.error('Undo modal error:', error);
+            undoModalBody.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">❌</div>
+                    <p>Error loading undo information.</p>
+                </div>
+            `;
+            confirmButton.disabled = true;
+        }
+        
+        this.showModal('undoModal');
+    }
+
+    async performUndo() {
+        try {
+            const { lastFillOperation } = await chrome.storage.local.get(['lastFillOperation']);
+            
+            if (!lastFillOperation) {
+                this.showNotification('No operation to undo', 'error');
+                return;
+            }
+
+            // Send undo message to content script
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            
+            // Ensure content script is injected
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ['content.js']
+            });
+
+            chrome.tabs.sendMessage(tab.id, {
+                action: 'undo_fill',
+                fields: lastFillOperation.fields
+            }, (response) => {
+                if (chrome.runtime.lastError) {
+                    this.showNotification('Failed to undo: ' + chrome.runtime.lastError.message, 'error');
+                    return;
+                }
+                
+                if (response && response.success) {
+                    this.showNotification(`Undone: ${response.clearedCount} fields cleared`, 'success');
+                    // Clear the last operation from storage
+                    chrome.storage.local.remove(['lastFillOperation']);
+                } else {
+                    this.showNotification('Undo failed: ' + (response?.error || 'Unknown error'), 'error');
+                }
+            });
+
+        } catch (error) {
+            console.error('Undo error:', error);
+            this.showNotification('Undo failed: ' + error.message, 'error');
+        }
+    }
+
+    // --- History Feature ---
+
+    async showHistoryModal() {
+        const historyModalBody = document.getElementById('historyModalBody');
+        const clearButton = document.getElementById('historyClear');
+        
+        try {
+            const { fillHistory = [] } = await chrome.storage.local.get(['fillHistory']);
+            
+            if (fillHistory.length === 0) {
+                historyModalBody.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📚</div>
+                        <p>No fill history available.</p>
+                        <p>Your form fill history will appear here after you start using SmartFill.</p>
+                    </div>
+                `;
+                clearButton.disabled = true;
+            } else {
+                let historyHtml = '';
+                fillHistory.slice(0, 20).forEach(entry => { // Show last 20 entries
+                    const date = new Date(entry.timestamp).toLocaleString();
+                    const url = new URL(entry.url).hostname;
+                    historyHtml += `
+                        <div class="history-item">
+                            <div class="history-date">${date}</div>
+                            <div class="history-url">${url}</div>
+                            <div class="history-fields">${entry.fieldsCount} fields filled</div>
+                        </div>
+                    `;
+                });
+                
+                historyModalBody.innerHTML = `
+                    <div style="margin-bottom: 16px;">
+                        <strong>Recent Fill Operations (${fillHistory.length} total)</strong>
+                    </div>
+                    ${historyHtml}
+                `;
+                clearButton.disabled = false;
+            }
+        } catch (error) {
+            console.error('History modal error:', error);
+            historyModalBody.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">❌</div>
+                    <p>Error loading history.</p>
+                </div>
+            `;
+            clearButton.disabled = true;
+        }
+        
+        this.showModal('historyModal');
+    }
+
+    async clearHistory() {
+        try {
+            await chrome.storage.local.remove(['fillHistory']);
+            this.showNotification('History cleared', 'success');
+            this.hideModal('historyModal');
+        } catch (error) {
+            console.error('Clear history error:', error);
+            this.showNotification('Failed to clear history', 'error');
+        }
+    }
+
+    // --- Enhanced Fill Function with History Tracking ---
+
+    async saveToHistory(url, fieldsCount, fields) {
+        try {
+            const { fillHistory = [] } = await chrome.storage.local.get(['fillHistory']);
+            
+            const newEntry = {
+                timestamp: Date.now(),
+                url: url,
+                fieldsCount: fieldsCount,
+                fields: fields // Store for undo functionality
+            };
+            
+            // Add to beginning of array and limit to 50 entries
+            fillHistory.unshift(newEntry);
+            const limitedHistory = fillHistory.slice(0, 50);
+            
+            await chrome.storage.local.set({ 
+                fillHistory: limitedHistory,
+                lastFillOperation: newEntry
+            });
+        } catch (error) {
+            console.error('Failed to save to history:', error);
+        }
     }
 }
 
